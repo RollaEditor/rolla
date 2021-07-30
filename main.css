@@ -1,0 +1,67 @@
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+body {
+    color: white;
+    background: linear-gradient(-45deg, #fc466b, #3f5efb);
+    background-size: 300% 300%;
+    font-family: 'Noto Sans', sans-serif;
+    animation: gradient 15s ease infinite;
+    margin: 0;
+    padding: 0;
+}
+
+.wrapper {
+    padding: 10%;
+    margin-bottom: 128px;
+}
+
+.inner {
+    text-align: center;
+    width: 100%;
+}
+
+h1 {
+    margin-bottom: 160px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+label {
+    width: 256px;
+    height: 64px;
+    background-color: transparent;
+    border: 4px dashed;
+    border-radius: 32px;
+    padding: 128px 128px;
+    transition: 0.2s ease;
+    opacity: 0.5;
+}
+
+label:hover {
+    opacity: 1;
+    cursor: pointer;
+}
+
+footer {
+    margin-bottom: 0;
+}
+
+#footer-icons {
+    text-align: center;
+}
+
+#footer-icons svg {
+    width: 40px;
+}
