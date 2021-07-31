@@ -53,17 +53,27 @@
     </div>
 </footer>
 <script>
-    if (typeof SharedArrayBuffer === "undefined") {
-        document.getElementById('message').innerHTML = "Error: Please use latest Chrome/Firefox/Edge"
+    let createFFmpeg, fetchFile
+    let ffmpeg;
+    window.onload = load()
+
+    async function load() {
+        if (typeof SharedArrayBuffer === "undefined") {
+            document.getElementById('message').innerHTML = "Error: Please use latest Chrome/Firefox/Edge"
+        }
+        createFFmpeg = FFmpeg.createFFmpeg;  // FFmpeg is exported from ffmpeg script
+        fetchFile = FFmpeg.fetchFile;
+        ffmpeg = createFFmpeg({log: true});
+        await ffmpeg.load();  // key line: loading wasm
     }
-    const {createFFmpeg, fetchFile} = FFmpeg;
-    const ffmpeg = createFFmpeg({log: true});
 
     const trim = async ({target: {files}}) => {
         const message = document.getElementById('message');
         const {name} = files[0];
         message.innerHTML = 'Loading ffmpeg-core.js';
-        await ffmpeg.load();
+        if (!ffmpeg.isLoaded()) {
+            await ffmpeg.load();
+        }
         message.innerHTML = 'Start Extracting Silence Interval';
         ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
         await ffmpeg.run('-i', name, '-af', 'silencedetect=n=-50dB:d=0.5,ametadata=mode=print:file=plswork.txt', '-f', 'null', '-');
@@ -95,6 +105,7 @@
 
     const elm = document.getElementById('media-upload');
     elm.addEventListener('change', trim);
+
 </script>
 </body>
 </html>
