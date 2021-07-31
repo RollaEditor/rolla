@@ -21,13 +21,17 @@ body {
 }
 
 .wrapper {
-    padding: 10%;
-    margin-bottom: 128px;
+    padding-top: 96px;
+    margin-bottom: 192px;
 }
 
 .inner {
     text-align: center;
     width: 100%;
+}
+
+#logo {
+    width: 128px;
 }
 
 h1 {
@@ -52,10 +56,6 @@ label {
 label:hover {
     opacity: 1;
     cursor: pointer;
-}
-
-footer {
-    margin-bottom: 0;
 }
 
 #footer-icons {
