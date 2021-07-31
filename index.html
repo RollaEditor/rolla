@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js" crossorigin="anonymous"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="/favicon.ico">
@@ -27,7 +28,7 @@
             </h1>
             <p>
                 <input type="file" id="media-upload" accept="audio/*,video/*">
-                <label for="media-upload">Choose a Clip</label>
+                <label for="media-upload" id="message">Choose a Clip</label>
             </p>
         </div>
     </div>
@@ -40,5 +41,40 @@
             </a>
         </div>
     </footer>
+    <script>
+
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
+        const trim = async ({ target: { files } }) => {
+            const message = document.getElementById('message');
+            const { name } = files[0];
+            message.innerHTML = 'Loading ffmpeg-core.js';
+            await ffmpeg.load();
+            message.innerHTML = 'Start Extracting Silence Interval';
+            ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
+            await ffmpeg.run('-i', name, '-af', 'silencedetect=n=-50dB:d=0.5,ametadata=mode=print:file=plswork.txt', '-f', 'null', '-');
+            message.innerHTML = 'Completed Extraction';
+            const data = ffmpeg.FS('readFile', 'plswork.txt');
+            // const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
+            const objectURL = URL.createObjectURL(new Blob([data.buffer], { type: '.txt' }));
+            await download(objectURL)
+            message.innerHTML = 'Success';
+        }
+
+        async function download(objectURL) {
+            // Credit to Aidan
+            let link
+            link = document.createElement('a');
+            link.href = objectURL;
+            link.download = `output.txt`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        const elm = document.getElementById('media-upload');
+        elm.addEventListener('change', trim);
+    </script>
 </body>
 </html>
