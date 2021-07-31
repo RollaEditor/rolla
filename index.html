@@ -53,7 +53,9 @@
     </div>
 </footer>
 <script>
-
+    if (typeof SharedArrayBuffer === "undefined") {
+        document.getElementById('message').innerHTML = "Error: Please use latest Chrome/Firefox/Edge"
+    }
     const {createFFmpeg, fetchFile} = FFmpeg;
     const ffmpeg = createFFmpeg({log: true});
 
