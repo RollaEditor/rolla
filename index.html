@@ -73,10 +73,11 @@
             // const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
             const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
             await download(objectURL)
-            message.innerHTML = 'Choose a Clip';
         } catch (error) {
             message.innerHTML = 'Input File has no audio track';
+            await new Promise(r => setTimeout(r, 1000)); // sleep for 1 sec
         }
+        message.innerHTML = 'Choose a Clip';
     }
 
     async function download(objectURL) {
