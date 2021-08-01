@@ -15,7 +15,9 @@ async function load() {
 
 const trim = async ({target: {files}}) => {
     const message = document.getElementById('message');
-    const {name} = files[0];
+    const videoFile = files[0];
+    const {name} = videoFile;
+
     message.innerHTML = 'Loading ffmpeg-core.js';
     if (!ffmpeg.isLoaded()) {
         await ffmpeg.load();
@@ -35,7 +37,7 @@ const trim = async ({target: {files}}) => {
             const outputBlob = new Blob([data.buffer], {type: '.txt'});
             // const objectURL = URL.createObjectURL(outputBlob); // might not be needed
             // await download(objectURL) // TODO: fix this
-            await process(outputBlob, name);
+            await process(outputBlob, videoFile);
         } catch (error) {
             console.log(error);
         }
@@ -63,8 +65,14 @@ async function process(blob, file) {
     // Effects:
     //  - converts txt to xml
     //  - creates a download window that downloads the xml
-    currentDuration = file.duration;
+
+    // Get Durations:
+    let video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    currentDuration = video.duration;
     fractionString = DecimalToFraction(currentDuration);
+    video.remove();
+    // Proceed:
     SetFileType(true);  // TODO: fix to support both video and audio
     ConvertSilencesBlobToCuts(blob);
     SaveCuts();
