@@ -37,7 +37,10 @@ const trim = async ({target: {files}}) => {
   }
   message.innerHTML = 'Start Extracting Silence Interval';
   ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
-  await ffmpeg.run('-i', name, '-af', 'silencedetect=n=-50dB:d=0.5,ametadata=mode=print:file=plswork.txt', '-f', 'null', '-');
+  // silence detection
+  let noise = -27;
+  let pause_duration = 0.5;
+  await ffmpeg.run('-i', name, '-af', `silencedetect=n=${noise}dB:d=${pause_duration},ametadata=mode=print:file=plswork.txt`, '-f', 'null', '-');
   message.innerHTML = 'Completed Extraction';
 
   let data;
@@ -55,8 +58,7 @@ const trim = async ({target: {files}}) => {
 
 async function download(objectURL) {
   // Credit to Aidan
-  let link
-  link = document.createElement('a');
+  let link = document.createElement('a');
   link.href = objectURL;
   link.download = `output.txt`;
   document.body.appendChild(link);
