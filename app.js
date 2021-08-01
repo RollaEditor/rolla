@@ -31,8 +31,10 @@ const trim = async ({target: {files}}) => {
     try {
         let data = ffmpeg.FS('readFile', 'plswork.txt');
         // const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
-        const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
-        await download(objectURL) // TODO: fix this
+        const outputBlob = new Blob([data.buffer], {type: '.txt'});
+        // const objectURL = URL.createObjectURL(outputBlob); // might not be needed
+        // await download(objectURL) // TODO: fix this
+        await process(outputBlob, name);
     } catch (error) {
         message.innerHTML = 'Input File has no audio track';
         await new Promise(r => setTimeout(r, 1000)); // sleep for 1 sec
@@ -51,13 +53,18 @@ async function download(objectURL) {
     link.remove();
 }
 
-async function parse(objectURL) {
+async function process(blob, file) {
     // Input: objectURL for txt file
     // Output: None
     // Effects:
     //  - converts txt to xml
     //  - creates a download window that downloads the xml
-
+    currentDuration = file.duration;
+    fractionString = DecimalToFraction(currentDuration);
+    SetFileType(true);  // TODO: fix to support both video and audio
+    ConvertSilencesBlobToCuts(blob);
+    SaveCuts();
+    await DownloadFile(xmlDoc, "fcpxml", true)
 }
 
 const elm = document.getElementById('media-upload');
@@ -271,12 +278,12 @@ function gcd(a, b) { //gets the common denominator
     return (b) ? gcd(b, a % b) : a;
 }
 
-function DownloadFile(file, extension, isXML = false) { //converts the xml var into a string to then write that string to a file which is automatically downloaded
+async function DownloadFile(file, extension, isXML = false) { //converts the xml var into a string to then write that string to a file which is automatically downloaded
     let fr = new FileReader();
     let serializer = new XMLSerializer()
     if (!isXML) fr.readAsDataURL(file);
     let blob = !isXML ? new Blob([file], {type: `application/${extension}`}) :
         new Blob([serializer.serializeToString(file)], {type: 'text/plain'})
     let objectURL = window.URL.createObjectURL(blob);
-    download(objectURL);
+    await download(objectURL);
 }
