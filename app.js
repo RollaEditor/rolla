@@ -88,6 +88,7 @@ async function process(blob, file) {
     console.log('metadata loaded!');
     console.log(`video duration: ${video.duration}`);//this refers to myVideo
     currentDuration = video.duration;
+    currentFile = file; // so it is needed
     fractionString = DecimalToFraction(currentDuration);
     video.remove();
     // Proceed:
