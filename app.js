@@ -133,12 +133,21 @@ function ConvertToCuts(blobResult) { //takes the text, splits by each new line, 
             times[1] = parseFloat(line.split("=")[1])
         }
         if (times.indexOf(-1.0) === -1) {
-            //AddCut(times[0], times[1]) //here is where cut is actually added. i commented it out to output the grabbed cuts to console to test
+            AddCut(times[0], times[1])
             console.log(`${times[0]} ${times[1]}`)
             times[0] = -1.0
             times[1] = -1.0
         }
     }
+}
+
+function AddCut(start, end){
+    //  adds a cut to the cuts array. note that the order of cuts is very important
+    //  (reference the callings of this func previously)
+    //  (not ordering it properly causes everything to be offset incorrectly)
+    let cut = {"start": start, "end": end, "enabled": false, "offset": ""}
+    cut.offset = start === 0 ? "3600/1" : `${DecimalToFraction(3600 + cut.start)}`
+    cuts.push(cut)
 }
 
 function SaveCuts() { //saves each clip into the xml var MAKE SURE SetFileType IS RUN BEFORE THIS OR ERROR WILL OCCUR
@@ -153,7 +162,7 @@ function SaveCuts() { //saves each clip into the xml var MAKE SURE SetFileType I
 function AddExtraClips() { //adds the parts that aren't cut (based from the cuts) and returns the added clips and cuts as new array
     let cutsToAdd = []
     if (cuts[0].start !== 0) cutsToAdd.push({"start": 0, "end": cuts[0].start, "enabled": true, "offset": "3600/1"})
-    for (i = 0; i < cuts.length; i++) {
+    for (let i = 0; i < cuts.length; i++) {
         if (i - 1 > -1) {
             cutsToAdd.push({
                 "start": cuts[i - 1].end,
@@ -219,7 +228,7 @@ function AddExtraAssets() { //adds the extra assets (formats) for a video (note 
     }
 }
 
-function AddSplit(start, duration, num, enabled, offset) { //sets the resource and asset part of each clip (perameters are all needed)
+function AddSplit(start, duration, num, enabled, offset) { //sets the resource and asset part of each clip (parameters are all needed)
     AddResource(num);
     if (!isVideo) {
         AddAsset(start, duration, num, enabled, offset);
@@ -249,7 +258,7 @@ function AddResource(num) { //adds a new child node to resources that has its ow
     resourceNode.appendChild(newAsset);
 }
 
-function AddAsset(start, duration, num, enabled, offset) { //creates a new child node in gap with perameters
+function AddAsset(start, duration, num, enabled, offset) { //creates a new child node in gap with parameters
     let gapNode = xmlDoc.getElementsByTagName("gap")[0];
     let newAssetClip = xmlDoc.createElement("asset-clip")
     newAssetClip.setAttribute("enabled", `${enabled ? "1" : "0"}`)
@@ -263,7 +272,7 @@ function AddAsset(start, duration, num, enabled, offset) { //creates a new child
 
 }
 
-function AddAssetVideo(start, duration, num, enabled, offset) { //adds asset-clips but for the video (ramade as asset-clips also have a child)
+function AddAssetVideo(start, duration, num, enabled, offset) { //adds asset-clips but for the video (remade as asset-clips also have a child)
     let spine = xmlDoc.getElementsByTagName("spine")[0];
     let assetClip = xmlDoc.createElement("asset-clip")
     let transAdjust = xmlDoc.createElement("adjust-transform")
