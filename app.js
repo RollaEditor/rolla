@@ -132,7 +132,7 @@ function ConvertToCuts(blobResult) { //takes the text, splits by each new line, 
         } else if (line.includes(endString)) {
             times[1] = parseFloat(line.split("=")[1])
         }
-        if (times.indexOf(-1.0) == -1) {
+        if (times.indexOf(-1.0) === -1) {
             //AddCut(times[0], times[1]) //here is where cut is actually added. i commented it out to output the grabbed cuts to console to test
             console.log(`${times[0]} ${times[1]}`)
             times[0] = -1.0
@@ -152,7 +152,7 @@ function SaveCuts() { //saves each clip into the xml var MAKE SURE SetFileType I
 
 function AddExtraClips() { //adds the parts that aren't cut (based from the cuts) and returns the added clips and cuts as new array
     let cutsToAdd = []
-    if (cuts[0].start != 0) cutsToAdd.push({"start": 0, "end": cuts[0].start, "enabled": true, "offset": "3600/1"})
+    if (cuts[0].start !== 0) cutsToAdd.push({"start": 0, "end": cuts[0].start, "enabled": true, "offset": "3600/1"})
     for (i = 0; i < cuts.length; i++) {
         if (i - 1 > -1) {
             cutsToAdd.push({
@@ -163,7 +163,7 @@ function AddExtraClips() { //adds the parts that aren't cut (based from the cuts
             })
         }
     }
-    if (cuts[cuts.length - 1].end != currentDuration) cutsToAdd.push({
+    if (cuts[cuts.length - 1].end !== currentDuration) cutsToAdd.push({
         "start": cuts[cuts.length - 1].end,
         "end": currentDuration,
         "enabled": true,
@@ -182,7 +182,7 @@ function ShiftAllItems(cutsToAdd){ //shifts all the clips and cuts properly
     let subAll = 0
     let frac
     for (let i = 1; i < cutsToAdd.length; i++){
-        if (cutsToAdd[i - 1].end != cutsToAdd[i].start){
+        if (cutsToAdd[i - 1].end !== cutsToAdd[i].start){
             subAll += cutsToAdd[i].start - cutsToAdd[i - 1].end
         }
         frac = DecimalToFraction(3600 + (cutsToAdd[i].start - subAll))
