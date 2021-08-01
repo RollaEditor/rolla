@@ -189,8 +189,8 @@ function AddAsset(start, duration, num, enabled, offset){ //creates a new child 
   newAssetClip.setAttribute("offset", `${offset}s`)
   newAssetClip.setAttribute("name", currentFile.name)
   newAssetClip.setAttribute("lane", "1")
-  newAssetClip.setAttribute("start", `${DecmalToFraction2(start)}s`)
-  newAssetClip.setAttribute("duration", `${DecmalToFraction2(duration)}s`)
+  newAssetClip.setAttribute("start", `${DecimalToFraction(start)}s`)
+  newAssetClip.setAttribute("duration", `${DecimalToFraction(duration)}s`)
   newAssetClip.setAttribute("ref", `r${num}`)
   gapNode.appendChild(newAssetClip);
   
@@ -205,8 +205,8 @@ function AddAssetVideo(start, duration, num, enabled, offset){ //adds asset-clip
   assetClip.setAttribute("offset", `${offset}s`)
   assetClip.setAttribute("name", currentFile.name)
   assetClip.setAttribute("lane", "1")
-  assetClip.setAttribute("start", `${DecmalToFraction2(start)}s`)
-  assetClip.setAttribute("duration", `${DecmalToFraction2(duration)}s`)
+  assetClip.setAttribute("start", `${DecimalToFraction(start)}s`)
+  assetClip.setAttribute("duration", `${DecimalToFraction(duration)}s`)
   assetClip.setAttribute("ref", `r${num}`)
   assetClip.setAttribute("tcFormat", "NDF")
   transAdjust.setAttribute("scale", "1 1")
@@ -216,7 +216,7 @@ function AddAssetVideo(start, duration, num, enabled, offset){ //adds asset-clip
   spine.appendChild(assetClip)
 }
 
-function DecmalToFraction2(amount){ //converts an amount (number) into a fraction string (comments within not mine)
+function DecimalToFraction(amount){ //converts an amount (number) into a fraction string (comments within not mine)
   if ( parseFloat( amount ) === parseInt( amount ) ) {
     return `${amount}/1`;
   }
@@ -246,17 +246,9 @@ function gcd(a, b) { //gets the common denominator
 
 function DownloadFile(file, extension, isXML = false){ //converts the xml var into a string to then write that string to a file which is automatically downloaded
   let fr = new FileReader();
-  let blob
-  let objectURL
   let serializer = new XMLSerializer()
-  let link
   if (!isXML) fr.readAsDataURL(file);
-  blob = ! isXML ? new Blob([file], {type: `application/${extension}`}) : new Blob([serializer.serializeToString(file)], {type: 'text/plain'})
-  objectURL = window.URL.createObjectURL(blob);
-  link = document.createElement('a'); //this is funny way to force download by making a link then clicking it essentially but it somehow works
-  link.href = objectURL;
-  link.download = `testName.${extension}`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  let blob = ! isXML ? new Blob([file], {type: `application/${extension}`}) : new Blob([serializer.serializeToString(file)], {type: 'text/plain'})
+  let objectURL = window.URL.createObjectURL(blob);
+  download(objectURL);
 }
