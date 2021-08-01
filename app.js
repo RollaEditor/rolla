@@ -105,7 +105,8 @@ let fractionString
 let currentDuration //the duration of the audio MUST SET THIS BEFORE SAVING THE CUTS
 let currentFile //for audio file may not be needed for you people
 let cuts = [] //cuts array (where they are stored) (note you dont need to make the other clips as this program already handles that)
-
+let xmlDoc
+let isVideo
 function ConvertSilencesBlobToCuts(blob) { //tales a blob (in this case the selected output.txt file) and converts it to cuts
     let reader = new FileReader();
     reader.onload = function (e) {
@@ -115,6 +116,7 @@ function ConvertSilencesBlobToCuts(blob) { //tales a blob (in this case the sele
 }
 
 function SetFileType(isVideoTrue) { //sets the xmldoc var depending on if you want video or audio (must be done before anything is used in this code)
+    let parser = new DOMParser(); //used for the xml making
     xmlDoc = isVideoTrue ? parser.parseFromString(xmlStringStartVideo, "text/xml") : parser.parseFromString(xmlStringStart, "text/xml")
     isVideo = isVideoTrue
 }
@@ -139,7 +141,7 @@ function ConvertToCuts(blobResult) { //takes the text, splits by each new line, 
     }
 }
 
-function SaveCuts() { //saves each clip into the xml var MAKE SURE SetFileType IS RUN BEFORE THIS OR ERROR WILL OCCURE
+function SaveCuts() { //saves each clip into the xml var MAKE SURE SetFileType IS RUN BEFORE THIS OR ERROR WILL OCCUR
     let adder = isVideo ? 2 : 1
     cuts = AddExtraClips()
     if (isVideo) AddExtraAssets(); else AddGapNode(); //if issue arises here just properly have an if else
@@ -176,6 +178,20 @@ function AddExtraClips() { //adds the parts that aren't cut (based from the cuts
     return cutsToAdd
 }
 
+function ShiftAllItems(cutsToAdd){ //shifts all the clips and cuts properly
+    let subAll = 0
+    let frac
+    for (let i = 1; i < cutsToAdd.length; i++){
+        if (cutsToAdd[i - 1].end != cutsToAdd[i].start){
+            subAll += cutsToAdd[i].start - cutsToAdd[i - 1].end
+        }
+        frac = DecimalToFraction(3600 + (cutsToAdd[i].start - subAll))
+        cutsToAdd[i].offset = frac
+        if (i - 1 < cuts.length) cuts[i - 1].offset = frac
+    }
+    return cutsToAdd
+}
+
 function AddGapNode() { //adds the gap node for xml (only done for audio files)
     let gapNode = xmlDoc.createElement("gap")
     let spineNode = xmlDoc.getElementsByTagName("spine")[0];
@@ -187,7 +203,7 @@ function AddGapNode() { //adds the gap node for xml (only done for audio files)
 }
 
 function AddExtraAssets() { //adds the extra assets (formats) for a video (note each asset-clip uses one format which is currently the 720p one)
-    let resourceNode = xmlDoc.getElementsByTagName("resources")[0];
+    // let resourceNode = xmlDoc.getElementsByTagName("resources")[0];
     let newFormats = [xmlDoc.createElement("format"), xmlDoc.createElement("format")]
     let vals = [{"width": "1920", "name": "FFVideoFormat1080p30", "height": "1080"}, {
         "width": "1280",
@@ -272,28 +288,28 @@ function DecimalToFraction(amount) { //converts an amount (number) into a fracti
         return `${amount}/1`;
     }
     // Next 12 lines are cribbed from https://stackoverflow.com/a/23575406.
-    var gcd = function (a, b) {
+    const gcd = function (a, b) {
         if (b < 0.0000001) {
             return a;
         }
         return gcd(b, Math.floor(a % b));
     };
-    var len = amount.toString().length - 2;
-    var denominator = Math.pow(10, len);
-    var numerator = amount * denominator;
-    var divisor = gcd(numerator, denominator);
+    const len = amount.toString().length - 2;
+    let denominator = Math.pow(10, len);
+    let numerator = amount * denominator;
+    const divisor = gcd(numerator, denominator);
     numerator /= divisor;
     denominator /= divisor;
-    var base = 0;
+    // const base = 0;
     // In a scenario like 3/2, convert to 1 1/2
     // by pulling out the base number and reducing the numerator.
     amount = Math.floor(numerator) + '/' + Math.floor(denominator);
     return amount;
 }
 
-function gcd(a, b) { //gets the common denominator
+/*function gcd(a, b) { //gets the common denominator
     return (b) ? gcd(b, a % b) : a;
-}
+}*/
 
 async function DownloadFile(file, extension, isXML = false) { //converts the xml var into a string to then write that string to a file which is automatically downloaded
     let fr = new FileReader();
