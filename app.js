@@ -170,7 +170,7 @@ function AddGapNode() { //adds the gap node for xml (only done for audio files)
 }
 
 function AddExtraAssets() { //adds the extra assets (formats) for a video (note each asset-clip uses one format which is currently the 720p one)
-    let recourceNode = xmlDoc.getElementsByTagName("resources")[0];
+    let resourceNode = xmlDoc.getElementsByTagName("resources")[0];
     let newFormats = [xmlDoc.createElement("format"), xmlDoc.createElement("format")]
     let vals = [{"width": "1920", "name": "FFVideoFormat1080p30", "height": "1080"}, {
         "width": "1280",
@@ -186,8 +186,8 @@ function AddExtraAssets() { //adds the extra assets (formats) for a video (note 
     }
 }
 
-function AddSplit(start, duration, num, enabled, offset) { //sets the recource and asset part of each clip (perameters are all needed)
-    AddRecource(num);
+function AddSplit(start, duration, num, enabled, offset) { //sets the resource and asset part of each clip (perameters are all needed)
+    AddResource(num);
     if (!isVideo) {
         AddAsset(start, duration, num, enabled, offset);
     } else {
@@ -195,8 +195,8 @@ function AddSplit(start, duration, num, enabled, offset) { //sets the recource a
     }
 }
 
-function AddRecource(num) { //adds a new child node to recources that has its own child
-    let recourceNode = xmlDoc.getElementsByTagName("resources")[0];
+function AddResource(num) { //adds a new child node to resources that has its own child
+    let resourceNode = xmlDoc.getElementsByTagName("resources")[0];
     let newAsset = xmlDoc.createElement("asset");
     let newMedia = xmlDoc.createElement("media-rep");
     newAsset.setAttribute("audioChannels", "2");
@@ -213,7 +213,7 @@ function AddRecource(num) { //adds a new child node to recources that has its ow
         newAsset.setAttribute("hasVideo", "1")
     }
     newAsset.appendChild(newMedia);
-    recourceNode.appendChild(newAsset);
+    resourceNode.appendChild(newAsset);
 }
 
 function AddAsset(start, duration, num, enabled, offset) { //creates a new child node in gap with perameters
