@@ -79,7 +79,7 @@ async function process(blob, file) {
 
     // Proceed:
     SetFileType(true);  // TODO: fix to support both video and audio
-    ConvertSilencesBlobToCuts(blob);
+    await ConvertSilencesBlobToCuts(blob);
     SaveCuts();
     await DownloadFile(xmlDoc, "fcpxml", true)
 }
@@ -107,12 +107,13 @@ let currentFile //for audio file may not be needed for you people
 let cuts = [] //cuts array (where they are stored) (note you dont need to make the other clips as this program already handles that)
 let xmlDoc
 let isVideo
-function ConvertSilencesBlobToCuts(blob) { //tales a blob (in this case the selected output.txt file) and converts it to cuts
-    let reader = new FileReader();
-    reader.onload = function (e) {
+async function ConvertSilencesBlobToCuts(blob) { //tales a blob (in this case the selected output.txt file) and converts it to cuts
+    // let reader = new FileReader();
+    /*reader.onload = function (e) {
         ConvertToCuts(e.target.result)
-    }
-    reader.readAsText(blob)
+    }*/
+    const text = await blob.text()
+    ConvertToCuts(text)
 }
 
 function SetFileType(isVideoTrue) { //sets the xmldoc var depending on if you want video or audio (must be done before anything is used in this code)
@@ -132,7 +133,7 @@ function ConvertToCuts(blobResult) { //takes the text, splits by each new line, 
         } else if (line.includes(endString)) {
             times[1] = parseFloat(line.split("=")[1])
         }
-        if (times.indexOf(-1.0) === -1) {
+        if (!times.includes(-1.0)) {
             AddCut(times[0], times[1])
             console.log(`${times[0]} ${times[1]}`)
             times[0] = -1.0
