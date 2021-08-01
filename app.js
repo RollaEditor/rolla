@@ -31,10 +31,14 @@ const trim = async ({target: {files}}) => {
     try {
         let data = ffmpeg.FS('readFile', 'plswork.txt');
         // const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
-        const outputBlob = new Blob([data.buffer], {type: '.txt'});
-        // const objectURL = URL.createObjectURL(outputBlob); // might not be needed
-        // await download(objectURL) // TODO: fix this
-        await process(outputBlob, name);
+        try {
+            const outputBlob = new Blob([data.buffer], {type: '.txt'});
+            // const objectURL = URL.createObjectURL(outputBlob); // might not be needed
+            // await download(objectURL) // TODO: fix this
+            await process(outputBlob, name);
+        } catch (error) {
+            console.log(error);
+        }
     } catch (error) {
         message.innerHTML = 'Input File has no audio track';
         await new Promise(r => setTimeout(r, 1000)); // sleep for 1 sec
