@@ -69,9 +69,14 @@ async function process(blob, file) {
     // Get Durations:
     let video = document.createElement('video');
     video.src = URL.createObjectURL(file);
-    currentDuration = video.duration;
-    fractionString = DecimalToFraction(currentDuration);
+    video.onloadedmetadata = function() {
+        console.log('metadata loaded!');
+        console.log(`video duration: ${this.duration}`);//this refers to myVideo
+        currentDuration = this.duration;
+        fractionString = DecimalToFraction(currentDuration);
+    };
     video.remove();
+
     // Proceed:
     SetFileType(true);  // TODO: fix to support both video and audio
     ConvertSilencesBlobToCuts(blob);
