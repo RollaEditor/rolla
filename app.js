@@ -37,7 +37,7 @@ const trim = async ({target: {files}}) => {
             const outputBlob = new Blob([data.buffer], {type: '.txt'});
             // const objectURL = URL.createObjectURL(outputBlob); // might not be needed
             // await download(objectURL) // TODO: fix this
-            await process(outputBlob, videoFile);
+            await process(outputBlob, videoFile)
         } catch (error) {
             console.log(error);
         }
@@ -59,6 +59,7 @@ async function download(objectURL) {
     link.remove();
 }
 
+// Note to myself: this function should not be async function...
 async function process(blob, file) {
     // Input: objectURL for txt file
     // Output: None
@@ -69,19 +70,36 @@ async function process(blob, file) {
     // Get Durations:
     let video = document.createElement('video');
     video.src = URL.createObjectURL(file);
-    video.onloadedmetadata = function() {
+    video.load(); // not sure if this is needed
+    /*video.addEventListener("durationchange", () => {
         console.log('metadata loaded!');
         console.log(`video duration: ${this.duration}`);//this refers to myVideo
         currentDuration = this.duration;
         fractionString = DecimalToFraction(currentDuration);
-    };
+        this.remove();
+        // Proceed:
+        SetFileType(true);  // TODO: fix to support both video and audio
+        ConvertSilencesBlobToCuts(blob).then(() => {
+            SaveCuts();
+            DownloadFile(xmlDoc, "fcpxml", true).then()  // Do nothing
+        })
+    })*/
+    await DurationChange(video)
+    console.log('metadata loaded!');
+    console.log(`video duration: ${video.duration}`);//this refers to myVideo
+    currentDuration = video.duration;
+    fractionString = DecimalToFraction(currentDuration);
     video.remove();
-
     // Proceed:
     SetFileType(true);  // TODO: fix to support both video and audio
-    await ConvertSilencesBlobToCuts(blob);
-    SaveCuts();
-    await DownloadFile(xmlDoc, "fcpxml", true)
+    ConvertSilencesBlobToCuts(blob).then(() => {
+        SaveCuts();
+        DownloadFile(xmlDoc, "fcpxml", true).then()  // Do nothing
+    })
+}
+
+async function DurationChange(video) {
+    return new Promise(resolve => video.ondurationchange = () => resolve())
 }
 
 const elm = document.getElementById('media-upload');
@@ -107,6 +125,7 @@ let currentFile //for audio file may not be needed for you people
 let cuts = [] //cuts array (where they are stored) (note you dont need to make the other clips as this program already handles that)
 let xmlDoc
 let isVideo
+
 async function ConvertSilencesBlobToCuts(blob) { //tales a blob (in this case the selected output.txt file) and converts it to cuts
     // let reader = new FileReader();
     /*reader.onload = function (e) {
@@ -142,7 +161,7 @@ function ConvertToCuts(blobResult) { //takes the text, splits by each new line, 
     }
 }
 
-function AddCut(start, end){
+function AddCut(start, end) {
     //  adds a cut to the cuts array. note that the order of cuts is very important
     //  (reference the callings of this func previously)
     //  (not ordering it properly causes everything to be offset incorrectly)
@@ -188,11 +207,11 @@ function AddExtraClips() { //adds the parts that aren't cut (based from the cuts
     return cutsToAdd
 }
 
-function ShiftAllItems(cutsToAdd){ //shifts all the clips and cuts properly
+function ShiftAllItems(cutsToAdd) { //shifts all the clips and cuts properly
     let subAll = 0
     let frac
-    for (let i = 1; i < cutsToAdd.length; i++){
-        if (cutsToAdd[i - 1].end !== cutsToAdd[i].start){
+    for (let i = 1; i < cutsToAdd.length; i++) {
+        if (cutsToAdd[i - 1].end !== cutsToAdd[i].start) {
             subAll += cutsToAdd[i].start - cutsToAdd[i - 1].end
         }
         frac = DecimalToFraction(3600 + (cutsToAdd[i].start - subAll))
