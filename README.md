@@ -7,12 +7,13 @@
 # Rolla
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8881a061-16f2-47c5-b30e-a1c1f167fe2f/deploy-status)](https://app.netlify.com/sites/rolla/deploys)
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 Rolla is a progressive web application that automatically edits video and audio
 footage. It does this by scanning the clip for silent segments and performs
 non-destructive edits in an FCPXML file - a format that is readable by video
-editing applications such as Davinci Resolve. Rolla runs entirely in the browser
-and can be installed in one click for offline use on any platform.
+editing applications such as Davinci Resolve and Final Cut. Rolla runs entirely
+in the browser and can be installed in one click for offline use on any platform.
 
 Check it out: [https://rolla.netlify.app](https://rolla.netlify.app)
 
