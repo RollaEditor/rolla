@@ -1,0 +1,1 @@
+rsync -a ./src ./site
