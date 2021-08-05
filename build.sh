@@ -1,1 +1,1 @@
-rsync -a ./src ./site
+rsync -a --mkpath ./src ./site
