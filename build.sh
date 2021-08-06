@@ -9,4 +9,4 @@
 # rsync -a --mkpath ./src ./site
 
 mkdir site
-rsync -a -R src/ site
+rsync -a src/ site
