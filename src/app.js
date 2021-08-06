@@ -5,12 +5,13 @@ window.onload = load()
 
 async function load () {
   if (typeof SharedArrayBuffer === 'undefined') {
-    document.getElementById('message').innerHTML = 'Error: Please use latest Chrome/Firefox/Edge'
+    document.getElementById('message').innerHTML =
+      'Error: Please use latest Chrome/Firefox/Edge'
   }
-  createFFmpeg = FFmpeg.createFFmpeg  // FFmpeg is exported from ffmpeg script
+  createFFmpeg = FFmpeg.createFFmpeg // FFmpeg is exported from ffmpeg script
   fetchFile = FFmpeg.fetchFile
   ffmpeg = createFFmpeg({ log: true })
-  await ffmpeg.load()  // key line: loading wasm
+  await ffmpeg.load() // key line: loading wasm
 }
 
 const trim = async ({ target: { files } }) => {
@@ -27,7 +28,15 @@ const trim = async ({ target: { files } }) => {
   // silence detection
   let noise = -27
   let pause_duration = 0.5
-  await ffmpeg.run('-i', name, '-af', `silencedetect=n=${noise}dB:d=${pause_duration},ametadata=mode=print:file=plswork.txt`, '-f', 'null', '-')
+  await ffmpeg.run(
+    '-i',
+    name,
+    '-af',
+    `silencedetect=n=${noise}dB:d=${pause_duration},ametadata=mode=print:file=plswork.txt`,
+    '-f',
+    'null',
+    '-'
+  )
   message.innerHTML = 'Completed Extraction'
 
   try {
@@ -72,35 +81,35 @@ async function process (blob, file) {
   video.src = URL.createObjectURL(file)
   video.load() // not sure if this is needed
   /*video.addEventListener("durationchange", () => {
-      console.log('metadata loaded!');
-      console.log(`video duration: ${this.duration}`);//this refers to myVideo
-      currentDuration = this.duration;
-      fractionString = DecimalToFraction(currentDuration);
-      this.remove();
-      // Proceed:
-      SetFileType(true);  // TODO: fix to support both video and audio
-      ConvertSilencesBlobToCuts(blob).then(() => {
-          SaveCuts();
-          DownloadFile(xmlDoc, "fcpxml", true).then()  // Do nothing
-      })
-  })*/
+        console.log('metadata loaded!');
+        console.log(`video duration: ${this.duration}`);//this refers to myVideo
+        currentDuration = this.duration;
+        fractionString = DecimalToFraction(currentDuration);
+        this.remove();
+        // Proceed:
+        SetFileType(true);  // TODO: fix to support both video and audio
+        ConvertSilencesBlobToCuts(blob).then(() => {
+            SaveCuts();
+            DownloadFile(xmlDoc, "fcpxml", true).then()  // Do nothing
+        })
+    })*/
   await DurationChange(video)
   console.log('metadata loaded!')
-  console.log(`video duration: ${video.duration}`)//this refers to myVideo
+  console.log(`video duration: ${video.duration}`) //this refers to myVideo
   currentDuration = video.duration
   currentFile = file // so it is needed
   fractionString = DecimalToFraction(currentDuration)
   video.remove()
   // Proceed:
-  SetFileType(true)  // TODO: fix to support both video and audio
+  SetFileType(true) // TODO: fix to support both video and audio
   ConvertSilencesBlobToCuts(blob).then(() => {
     SaveCuts()
-    DownloadFile(xmlDoc, 'fcpxml', true).then()  // Do nothing
+    DownloadFile(xmlDoc, 'fcpxml', true).then() // Do nothing
   })
 }
 
 async function DurationChange (video) {
-  return new Promise(resolve => video.ondurationchange = () => resolve())
+  return new Promise(resolve => (video.ondurationchange = () => resolve()))
 }
 
 const elm = document.getElementById('media-upload')
@@ -108,16 +117,24 @@ elm.addEventListener('change', trim)
 
 // Aidan's works:
 
-const xmlStringStart = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources>' +
+const xmlStringStart =
+  '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources>' +
   '<format name="FFVideoFormat1080p24" id="r0" width="1920" frameDuration="1/24s" height="1080"/>' +
-  '</resources><library>' + '<event name="testing timeline (Resolve)">' + '<project name="testing timeline (Resolve)">' +
-  '<sequence tcStart="3600/1s" tcFormat="NDF" duration="2251/8s" format="r0">' + '<spine>' +
+  '</resources><library>' +
+  '<event name="testing timeline (Resolve)">' +
+  '<project name="testing timeline (Resolve)">' +
+  '<sequence tcStart="3600/1s" tcFormat="NDF" duration="2251/8s" format="r0">' +
+  '<spine>' +
   '</spine></sequence></project></event></library></fcpxml>' //this is the base format string for the fpcxml thing (for audio)
-const xmlStringStartVideo = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources>' +
+const xmlStringStartVideo =
+  '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources>' +
   '<format id="r0" width="1920" name="FFVideoFormat1080p30" height="1080" frameDuration="1/30s"/>' +
   '<format id="r1" width="1280" name="FFVideoFormat720p30" height="720" frameDuration="1/30s"/>' +
-  '</resources><library>' + '<event name="testing timeline (Resolve)">' + '<project name="testing timeline (Resolve)">' +
-  '<sequence format="r0" duration="271/15s" tcFormat="NDF" tcStart="3600/1s">' + '<spine>' +
+  '</resources><library>' +
+  '<event name="testing timeline (Resolve)">' +
+  '<project name="testing timeline (Resolve)">' +
+  '<sequence format="r0" duration="271/15s" tcFormat="NDF" tcStart="3600/1s">' +
+  '<spine>' +
   '</spine></sequence></project></event></library></fcpxml>'
 const MAX_CUT_TO_SAVE = 50
 let fractionString
@@ -127,22 +144,27 @@ let cuts = [] //cuts array (where they are stored) (note you dont need to make t
 let xmlDoc
 let isVideo
 
-async function ConvertSilencesBlobToCuts (blob) { //tales a blob (in this case the selected output.txt file) and converts it to cuts
+async function ConvertSilencesBlobToCuts (blob) {
+  //tales a blob (in this case the selected output.txt file) and converts it to cuts
   // let reader = new FileReader();
   /*reader.onload = function (e) {
-      ConvertToCuts(e.target.result)
-  }*/
+        ConvertToCuts(e.target.result)
+    }*/
   const text = await blob.text()
   ConvertToCuts(text)
 }
 
-function SetFileType (isVideoTrue) { //sets the xmldoc var depending on if you want video or audio (must be done before anything is used in this code)
+function SetFileType (isVideoTrue) {
+  //sets the xmldoc var depending on if you want video or audio (must be done before anything is used in this code)
   let parser = new DOMParser() //used for the xml making
-  xmlDoc = isVideoTrue ? parser.parseFromString(xmlStringStartVideo, 'text/xml') : parser.parseFromString(xmlStringStart, 'text/xml')
+  xmlDoc = isVideoTrue
+    ? parser.parseFromString(xmlStringStartVideo, 'text/xml')
+    : parser.parseFromString(xmlStringStart, 'text/xml')
   isVideo = isVideoTrue
 }
 
-function ConvertToCuts (blobResult) { //takes the text, splits by each new line, then grabs the start and end times to then add each cut
+function ConvertToCuts (blobResult) {
+  //takes the text, splits by each new line, then grabs the start and end times to then add each cut
   let split = blobResult.split('\n')
   let startString = 'silence_start'
   let endString = 'silence_end'
@@ -166,39 +188,55 @@ function AddCut (start, end) {
   //  adds a cut to the cuts array. note that the order of cuts is very important
   //  (reference the callings of this func previously)
   //  (not ordering it properly causes everything to be offset incorrectly)
-  let cut = { 'start': start, 'end': end, 'enabled': false, 'offset': '' }
+  let cut = { start: start, end: end, enabled: false, offset: '' }
   cut.offset = start === 0 ? '3600/1' : `${DecimalToFraction(3600 + cut.start)}`
   cuts.push(cut)
 }
 
-function SaveCuts () { //saves each clip into the xml var MAKE SURE SetFileType IS RUN BEFORE THIS OR ERROR WILL OCCUR
+function SaveCuts () {
+  //saves each clip into the xml var MAKE SURE SetFileType IS RUN BEFORE THIS OR ERROR WILL OCCUR
   let adder = isVideo ? 2 : 1
   cuts = AddExtraClips()
-  if (isVideo) AddExtraAssets(); else AddGapNode() //if issue arises here just properly have an if else
+  if (isVideo) AddExtraAssets()
+  else AddGapNode() //if issue arises here just properly have an if else
   for (let i = 0; i < cuts.length; i++) {
-    AddSplit(cuts[i].start, cuts[i].end - cuts[i].start, i + adder, cuts[i].enabled, cuts[i].offset)
+    AddSplit(
+      cuts[i].start,
+      cuts[i].end - cuts[i].start,
+      i + adder,
+      cuts[i].enabled,
+      cuts[i].offset
+    )
   }
 }
 
-function AddExtraClips () { //adds the parts that aren't cut (based from the cuts) and returns the added clips and cuts as new array
+function AddExtraClips () {
+  //adds the parts that aren't cut (based from the cuts) and returns the added clips and cuts as new array
   let cutsToAdd = []
-  if (cuts[0].start !== 0) cutsToAdd.push({ 'start': 0, 'end': cuts[0].start, 'enabled': true, 'offset': '3600/1' })
+  if (cuts[0].start !== 0)
+    cutsToAdd.push({
+      start: 0,
+      end: cuts[0].start,
+      enabled: true,
+      offset: '3600/1'
+    })
   for (let i = 0; i < cuts.length; i++) {
     if (i - 1 > -1) {
       cutsToAdd.push({
-        'start': cuts[i - 1].end,
-        'end': cuts[i].start,
-        'enabled': true,
-        'offset': cuts[i - 1].offset
+        start: cuts[i - 1].end,
+        end: cuts[i].start,
+        enabled: true,
+        offset: cuts[i - 1].offset
       })
     }
   }
-  if (cuts[cuts.length - 1].end !== currentDuration) cutsToAdd.push({
-    'start': cuts[cuts.length - 1].end,
-    'end': currentDuration,
-    'enabled': true,
-    'offset': cuts[cuts.length - 1].offset
-  })
+  if (cuts[cuts.length - 1].end !== currentDuration)
+    cutsToAdd.push({
+      start: cuts[cuts.length - 1].end,
+      end: currentDuration,
+      enabled: true,
+      offset: cuts[cuts.length - 1].offset
+    })
   cutsToAdd = ShiftAllItems(cutsToAdd)
   for (let cut of cuts) {
     if (cut.end - cut.start < MAX_CUT_TO_SAVE && !isVideo) {
@@ -208,7 +246,8 @@ function AddExtraClips () { //adds the parts that aren't cut (based from the cut
   return cutsToAdd
 }
 
-function ShiftAllItems (cutsToAdd) { //shifts all the clips and cuts properly
+function ShiftAllItems (cutsToAdd) {
+  //shifts all the clips and cuts properly
   let subAll = 0
   let frac
   for (let i = 1; i < cutsToAdd.length; i++) {
@@ -222,7 +261,8 @@ function ShiftAllItems (cutsToAdd) { //shifts all the clips and cuts properly
   return cutsToAdd
 }
 
-function AddGapNode () { //adds the gap node for xml (only done for audio files)
+function AddGapNode () {
+  //adds the gap node for xml (only done for audio files)
   let gapNode = xmlDoc.createElement('gap')
   let spineNode = xmlDoc.getElementsByTagName('spine')[0]
   gapNode.setAttribute('offset', '3600/1s')
@@ -232,15 +272,23 @@ function AddGapNode () { //adds the gap node for xml (only done for audio files)
   spineNode.appendChild(gapNode)
 }
 
-function AddExtraAssets () { //adds the extra assets (formats) for a video (note each asset-clip uses one format which is currently the 720p one)
+function AddExtraAssets () {
+  //adds the extra assets (formats) for a video (note each asset-clip uses one format which is currently the 720p one)
   // let resourceNode = xmlDoc.getElementsByTagName("resources")[0];
-  let newFormats = [xmlDoc.createElement('format'), xmlDoc.createElement('format')]
-  let vals = [{ 'width': '1920', 'name': 'FFVideoFormat1080p30', 'height': '1080' }, {
-    'width': '1280',
-    'name': 'FFVideoFormat720p30',
-    'height': '720'
-  }]
-  for (let i = 0; i < newFormats.length; i++) { //somehow these formats are automatically added which is stupid
+  let newFormats = [
+    xmlDoc.createElement('format'),
+    xmlDoc.createElement('format')
+  ]
+  let vals = [
+    { width: '1920', name: 'FFVideoFormat1080p30', height: '1080' },
+    {
+      width: '1280',
+      name: 'FFVideoFormat720p30',
+      height: '720'
+    }
+  ]
+  for (let i = 0; i < newFormats.length; i++) {
+    //somehow these formats are automatically added which is stupid
     newFormats[i].setAttribute('id', `r${i}`)
     newFormats[i].setAttribute('width', vals[i].width)
     newFormats[i].setAttribute('name', vals[i].name)
@@ -249,7 +297,8 @@ function AddExtraAssets () { //adds the extra assets (formats) for a video (note
   }
 }
 
-function AddSplit (start, duration, num, enabled, offset) { //sets the resource and asset part of each clip (parameters are all needed)
+function AddSplit (start, duration, num, enabled, offset) {
+  //sets the resource and asset part of each clip (parameters are all needed)
   AddResource(num)
   if (!isVideo) {
     AddAsset(start, duration, num, enabled, offset)
@@ -258,7 +307,8 @@ function AddSplit (start, duration, num, enabled, offset) { //sets the resource 
   }
 }
 
-function AddResource (num) { //adds a new child node to resources that has its own child
+function AddResource (num) {
+  //adds a new child node to resources that has its own child
   let resourceNode = xmlDoc.getElementsByTagName('resources')[0]
   let newAsset = xmlDoc.createElement('asset')
   let newMedia = xmlDoc.createElement('media-rep')
@@ -279,7 +329,8 @@ function AddResource (num) { //adds a new child node to resources that has its o
   resourceNode.appendChild(newAsset)
 }
 
-function AddAsset (start, duration, num, enabled, offset) { //creates a new child node in gap with parameters
+function AddAsset (start, duration, num, enabled, offset) {
+  //creates a new child node in gap with parameters
   let gapNode = xmlDoc.getElementsByTagName('gap')[0]
   let newAssetClip = xmlDoc.createElement('asset-clip')
   newAssetClip.setAttribute('enabled', `${enabled ? '1' : '0'}`)
@@ -290,10 +341,10 @@ function AddAsset (start, duration, num, enabled, offset) { //creates a new chil
   newAssetClip.setAttribute('duration', `${DecimalToFraction(duration)}s`)
   newAssetClip.setAttribute('ref', `r${num}`)
   gapNode.appendChild(newAssetClip)
-
 }
 
-function AddAssetVideo (start, duration, num, enabled, offset) { //adds asset-clips but for the video (remade as asset-clips also have a child)
+function AddAssetVideo (start, duration, num, enabled, offset) {
+  //adds asset-clips but for the video (remade as asset-clips also have a child)
   let spine = xmlDoc.getElementsByTagName('spine')[0]
   let assetClip = xmlDoc.createElement('asset-clip')
   let transAdjust = xmlDoc.createElement('adjust-transform')
@@ -313,7 +364,8 @@ function AddAssetVideo (start, duration, num, enabled, offset) { //adds asset-cl
   spine.appendChild(assetClip)
 }
 
-function DecimalToFraction (amount) { //converts an amount (number) into a fraction string (comments within not mine)
+function DecimalToFraction (amount) {
+  //converts an amount (number) into a fraction string (comments within not mine)
   if (parseFloat(amount) === parseInt(amount)) {
     return `${amount}/1`
   }
@@ -341,12 +393,14 @@ function DecimalToFraction (amount) { //converts an amount (number) into a fract
     return (b) ? gcd(b, a % b) : a;
 }*/
 
-async function DownloadFile (file, extension, isXML = false) { //converts the xml var into a string to then write that string to a file which is automatically downloaded
+async function DownloadFile (file, extension, isXML = false) {
+  //converts the xml var into a string to then write that string to a file which is automatically downloaded
   let fr = new FileReader()
   let serializer = new XMLSerializer()
   if (!isXML) fr.readAsDataURL(file)
-  let blob = !isXML ? new Blob([file], { type: `application/${extension}` }) :
-    new Blob([serializer.serializeToString(file)], { type: 'text/plain' })
+  let blob = !isXML
+    ? new Blob([file], { type: `application/${extension}` })
+    : new Blob([serializer.serializeToString(file)], { type: 'text/plain' })
   let objectURL = window.URL.createObjectURL(blob)
   await download(objectURL)
 }
