@@ -1,2 +1,8 @@
 .DS_Store
+
+# IDE files
 .idea/
+.vscode/
+
+# Dev tools
+src/*.py
