@@ -6,3 +6,6 @@
 
 # Dev tools
 src/server.*
+
+# Built results
+src/app.js
