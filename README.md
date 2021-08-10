@@ -1,6 +1,6 @@
 <p align="center">
   <a href="#">
-    <img alt="Rolla" width="128px" height="128px" src="https://raw.githubusercontent.com/RollaEditor/rolla/main/src/images/logo-192.png">
+    <img alt="Rolla" width="128px" height="128px" src="https://raw.githubusercontent.com/RollaEditor/rolla/main/images/logo-192.png">
   </a>
 </p>
 
