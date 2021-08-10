@@ -8,7 +8,7 @@ import * as _FFmpeg from '@ffmpeg/ffmpeg' // Hope this line doesn't cause any is
 import { FCPXML, FFmpegOutputParser } from './fcpxml'
 
 declare global {
-  const FFmpeg: typeof _FFmpeg
+  const FFmpeg: typeof _FFmpeg // eslint-disable-line no-unused-vars
 }
 
 // Key components for ffmpeg library, declared to be initialized later in load()
@@ -23,7 +23,7 @@ async function load () {
   if (typeof SharedArrayBuffer === 'undefined') {
     document.getElementById('message')!.innerHTML =
       'Error: Please use latest Chrome/Firefox/Edge'
-    return -1  // TODO: determine if it does break execution
+    return -1 // TODO: determine if it does break execution
   }
   createFFmpeg = FFmpeg.createFFmpeg // ffmpeg is exported from ffmpeg script
   fetchFile = FFmpeg.fetchFile
@@ -42,7 +42,6 @@ interface HTMLInputEvent extends Event {
 // Detects the silent interval
 // and displays an fcpxml download prompt (for which contains the silent intervals)
 const main = async (event: Event) => {
-
   const message = document.getElementById('message')!
 
   // Check if user didn't select any files
@@ -50,11 +49,11 @@ const main = async (event: Event) => {
   if ((<HTMLInputEvent>event).target.files == null) {
     document.getElementById('message')!.innerHTML =
       'Error: You did not select any files!'
-    return -1  // TODO: determine if it does break execution
+    return -1 // TODO: determine if it does break execution
   }
 
   // Select the file user uploaded
-  let videoFile = (<HTMLInputEvent>event).target.files![0]
+  const videoFile = (<HTMLInputEvent>event).target.files![0]
   const { name } = videoFile
 
   message.innerHTML = 'Loading ffmpeg-core.js'
@@ -64,13 +63,13 @@ const main = async (event: Event) => {
   message.innerHTML = 'Start Extracting Silence Interval'
   ffmpeg.FS('writeFile', name, await fetchFile(videoFile))
   // silence detection
-  let noise = -27
-  let pause_duration = 0.5
+  const noise = -27
+  const pauseDuration = 0.5
   await ffmpeg.run(
     '-i',
     name,
     '-af',
-    `silencedetect=n=${noise}dB:d=${pause_duration},ametadata=mode=print:file=plswork.txt`,
+    `silencedetect=n=${noise}dB:d=${pauseDuration},ametadata=mode=print:file=plswork.txt`,
     '-f',
     'null',
     '-'
@@ -78,7 +77,7 @@ const main = async (event: Event) => {
   message.innerHTML = 'Completed Extraction'
 
   try {
-    let data = ffmpeg.FS('readFile', 'plswork.txt')
+    const data = ffmpeg.FS('readFile', 'plswork.txt')
     // const objectURL = URL.createObjectURL(new Blob([data.buffer], {type: '.txt'}));
     try {
       const output = new Blob([data.buffer], { type: '.txt' })
@@ -99,6 +98,7 @@ const main = async (event: Event) => {
     }
   } catch (error) {
     message.innerHTML = 'Input File has no audio track'
+    // eslint-disable-next-line promise/param-names
     await new Promise(r => setTimeout(r, 1000)) // sleep for 1 sec
   }
   message.innerHTML = 'Choose a Clip'

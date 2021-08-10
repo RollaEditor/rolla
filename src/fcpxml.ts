@@ -1,7 +1,7 @@
 import * as _math from 'mathjs'
 
 declare global {
-  const math: typeof _math
+  const math: typeof _math // eslint-disable-line no-unused-vars
 }
 
 // Rationalize a decimal to fraction (in seconds)
@@ -27,16 +27,16 @@ export class AssetClip {
     // Fill in above info in assetClip
     setAttributes(this.assetClip,
       {
-        'offset': rationalize(this.offset),
+        offset: rationalize(this.offset),
         // 'offset': this.offset.toString(), // TODO: restore DEBUG changes
-        'name': fileName,
-        'format': 'r1',
-        'tcFormat': 'NDF',
-        'start': rationalize(this.start),
+        name: fileName,
+        format: 'r1',
+        tcFormat: 'NDF',
+        start: rationalize(this.start),
         // 'start': this.start.toString(),
-        'ref': 'r2', // TODO: should r2 be factored out into separate variable?
-        'enabled': '1',
-        'duration': rationalize(this.duration)
+        ref: 'r2', // TODO: should r2 be factored out into separate variable?
+        enabled: '1',
+        duration: rationalize(this.duration)
         // 'duration': this.duration.toString()
       })
   }
@@ -93,7 +93,6 @@ export class FCPXML {
     // this.setDuration().then()
     // Above code causes premature return
     // duration is set long after other class methods are called...
-
   }
 
   // Write changes to the xml
@@ -107,11 +106,10 @@ export class FCPXML {
 
   // Adds the Clips to the HTML
   setAssetClips () {
-
     // Calculate duration (for <sequence>)
     // duration: duration of video after cut
     let durationAfterCuts = this.duration
-    for (let cut of this.cuts) {
+    for (const cut of this.cuts) {
       durationAfterCuts -= cut.end - cut.start
     }
 
@@ -162,16 +160,17 @@ export class FCPXML {
     // generate an assetClip
     // add the generated asset-clip to spine via spine.appendChild(assetClip.assetClip)
 
-    let num_of_clips = this.cuts.length + 1 // total number of asset-clips
+    let numOfClips = this.cuts.length + 1 // total number of asset-clips
     // e.g. we have 1 asset-clip for 0 cuts, 2 asset-clips for 1 cut, and so forth
 
     let splits: number[], starts: number[], durations: number[], offsets: number[]
     // splits = starts = durations = offsets = [] // leaving this line here to show how stupid I am
     // to refer four variables to same [] array
-    [splits, starts, durations, offsets] = [[], [], [], []]  // dumb but trustworthy way
+    // eslint-disable-next-line prefer-const
+    [splits, starts, durations, offsets] = [[], [], [], []] // dumb but trustworthy way
 
     splits.push(0, this.duration)
-    for (let cut of this.cuts) {
+    for (const cut of this.cuts) {
       // Explanation:
       // ffmpeg outputs weird values such as -2.08333e-05 near start of video
       // such value being very close to 0 (both would be rounded
@@ -188,16 +187,17 @@ export class FCPXML {
       if (cut.start < 1 / 30) {
         splits.push(cut.end)
         splits.shift()
-        num_of_clips--
+        numOfClips--
       } else if (cut.end > (this.duration - 1 / 30)) {
         splits.push(cut.start)
         splits.pop()
-        num_of_clips--
+        numOfClips--
       } else if (cut.end - cut.start < 2 / 30) {
-        num_of_clips--
+        // Mitigation for case 1: Ignore
+        numOfClips--
+      } else {
+        splits.push(cut.start, cut.end)
       }
-      // Implement Case 1 Mitigation: Ignore
-      else splits.push(cut.start, cut.end)
 
       // TODO: address the potential Edge Case of entire video being silent
       // if it causes issue, determine if checks should be placed upstream or there
@@ -220,15 +220,17 @@ export class FCPXML {
         // Implement Case 2 Mitigation: Ignore
         starts.push(splits[i])
         durations.push(splits[i + 1] - splits[i])
-      } else num_of_clips--
+      } else {
+        numOfClips--
+      }
     }
 
     offsets.push(3600)
-    for (let i = 1; i < num_of_clips; i++) {
+    for (let i = 1; i < numOfClips; i++) {
       offsets[i] = offsets[i - 1] + durations[i - 1]
     }
 
-    for (let i = 0; i < num_of_clips; i++) {
+    for (let i = 0; i < numOfClips; i++) {
       const assetClip = new AssetClip(starts[i], durations[i], offsets[i], this.media.name)
       spine.appendChild(assetClip.assetClip)
     }
@@ -242,23 +244,23 @@ export class FCPXML {
     const asset = createXMLElement('asset')
     // Set attributes for asset
     setAttributes(asset, {
-      'hasVideo': '1',
-      'audioSources': '1',
-      'hasAudio': '1',
-      'name': this.media.name,
-      'format': 'r1',
-      'start': '0/1s',
-      'audioChannels': '2', // TODO: address single channel old school case
-      'id': 'r2',
-      'duration': rationalize(this.duration)
+      hasVideo: '1',
+      audioSources: '1',
+      hasAudio: '1',
+      name: this.media.name,
+      format: 'r1',
+      start: '0/1s',
+      audioChannels: '2', // TODO: address single channel old school case
+      id: 'r2',
+      duration: rationalize(this.duration)
     })
     // Add child node to asset
-    const media_rep = createXMLElement('media-rep')
-    setAttributes(media_rep, {
+    const mediaRep = createXMLElement('media-rep')
+    setAttributes(mediaRep, {
       kind: 'original-media',
       src: '' // TODO: determine if there's a better way to check src
     })
-    asset.appendChild(media_rep)
+    asset.appendChild(mediaRep)
     // Defensive coding
     // Ideally this should never be executed
     if (resources == null) {
@@ -270,7 +272,7 @@ export class FCPXML {
 
   async setDuration () {
     // Load the video in an HTML element
-    let video = document.createElement('video')
+    const video = document.createElement('video')
     video.src = URL.createObjectURL(this.media)
     video.load() // not sure if this is needed
 
@@ -297,14 +299,14 @@ export class FCPXML {
     // and each format would require a download() with duplicate code
 
     // Generate a download button (to be clicked on)
-    let link = document.createElement('a')
+    const link = document.createElement('a')
 
     // Serialize and attach this.xml to the download button
     link.href = URL.createObjectURL(
       new Blob([this.serialize()], { type: 'text/xml' }))
     // link.href = URL.createObjectURL(new Blob([this.xml.documentElement.outerHTML],
     //   { type: 'text/xml' }))
-    link.download = `result.fcpxml`
+    link.download = 'result.fcpxml'
     document.body.appendChild(link)
     // Click the download button
     link.click()
@@ -318,11 +320,10 @@ export class FCPXML {
     const xmlSerializer = new XMLSerializer()
     return xmlSerializer.serializeToString(this.xml).replaceAll('xmlns="http://www.w3.org/1999/xhtml"', '')
   }
-
 }
 
 function setAttributes (element: Element, Attrs: { [key: string]: string }) {
-  for (let key in Attrs) {
+  for (const key in Attrs) {
     element.setAttribute(key, Attrs[key])
   }
 }
@@ -331,17 +332,17 @@ function setAttributes (element: Element, Attrs: { [key: string]: string }) {
 // and convert to cuts
 // Credit to Aidan
 export class FFmpegOutputParser {
-  static async getCuts (ffmpeg_out: Blob) {
+  static async getCuts (ffmpegOut: Blob) {
     //
     const cuts: Cut[] = []
-    const out = await ffmpeg_out.text()
+    const out = await ffmpegOut.text()
     // Break output line by line
     const split = out.split('\n')
 
     const startString = 'silence_start'
-    let endString = 'silence_end'
-    let times = [-1.0, -1.0]
-    for (let line of split) {
+    const endString = 'silence_end'
+    const times = [-1.0, -1.0]
+    for (const line of split) {
       if (line.includes(startString)) {
         times[0] = parseFloat(line.split('=')[1])
       } else if (line.includes(endString)) {
