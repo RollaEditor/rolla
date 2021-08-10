@@ -6,7 +6,7 @@
 
 # Rolla
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/8881a061-16f2-47c5-b30e-a1c1f167fe2f/deploy-status)](https://app.netlify.com/sites/rolla/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/98668f69-e768-46db-9433-024c7b87461d/deploy-status)](https://app.netlify.com/sites/rolla-new/deploys)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 Rolla is a progressive web application that automatically edits video and audio
