@@ -81,10 +81,10 @@ class FCPXML {
     let clipDurationAttr = this.toTimecodeStr(clipDuration)
     let clipOffsetAttr = this.toTimecodeStr(this.#currentOffset)
     if (this.#mediaInfo.hasVideo) {
-      asset = `<asset id="${assetIDAttr}" format="r1" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasVideo="1" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
+      asset = `<asset id="${assetIDAttr}" format="r1" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasVideo="1" hasAudio="1" audioSources="1"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
       clip = `<asset-clip ref="${assetIDAttr}" format="r1" tcFormat="NDF" name="${assetNameAttr}" start="${clipStartAttr}" duration="${clipDurationAttr}" offset="${clipOffsetAttr}" enabled="1"><adjust-transform scale="1 1" anchor="0 0" position="0 0"/></asset-clip>`
     } else {
-      asset = `<asset id="${assetIDAttr}" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
+      asset = `<asset id="${assetIDAttr}" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasAudio="1" audioSources="1"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
       clip = `<asset-clip ref="${assetIDAttr}" name="${assetNameAttr}" start="${clipStartAttr}" duration="${clipDurationAttr}" offset="${clipOffsetAttr}" lane="2" enabled="1"/>`
     }
     this.#assetList.push(asset)
