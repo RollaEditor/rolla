@@ -217,9 +217,15 @@ async function getMediaInfo (mediaFile) {
   for (let logMsg of rawLogMsgs) {
     if (logMsg.includes('Video')) {
       mediaInfo.hasVideo = true
-      mediaInfo.width = parseInt(logMsg.split(',')[3])
-      mediaInfo.height = parseInt(logMsg.split(',')[3].split('x')[1])
-      mediaInfo.frameRate = parseFloat(logMsg.split(',')[5])
+      mediaInfo.width = parseInt(
+        logMsg
+          .split('x')
+          .reverse()[1]
+          .split(',')
+          .reverse()[0]
+      )
+      mediaInfo.height = parseInt(logMsg.split('x').reverse()[0])
+      mediaInfo.frameRate = parseFloat(logMsg.split(',').reverse()[3])
       break
     }
   }
@@ -230,8 +236,9 @@ async function getMediaInfo (mediaFile) {
   let hrs = parseInt(rawLogMsgs[0].split(':')[1]) // duration
   let mins = parseInt(rawLogMsgs[0].split(':')[2])
   let secs = parseFloat(rawLogMsgs[0].split(':')[3])
-  mediaInfo.frameCount =
-    Math.floor(((hrs * 60 + mins) * 60 + secs) * mediaInfo.frameRate)
+  mediaInfo.frameCount = Math.floor(
+    ((hrs * 60 + mins) * 60 + secs) * mediaInfo.frameRate
+  )
 
   return mediaInfo
 }
