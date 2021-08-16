@@ -1,3 +1,8 @@
 * text=auto
 *.ico -text
 *.png -text
+
+** -linguist-detectable
+src/**/*.html linguist-detectable
+src/**/*.css linguist-detectable
+src/**/*.js linguist-detectable
