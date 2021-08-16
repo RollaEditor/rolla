@@ -9,7 +9,8 @@ class FCPXML {
   #clipList
   #endStr
   #currAssetID
-  #currOffset
+  #initialOffset
+  #currentOffset
 
   constructor (mediaInfo) {
     this.#mediaInfo = mediaInfo
@@ -18,8 +19,8 @@ class FCPXML {
     let formatNameAttr =
       'FFVideoFormat1080p' + this.#mediaInfo.frameRate.toString()
     if (!Number.isInteger(this.#mediaInfo.frameRate)) {
-      // override in case of non-integer frame rates
-      this.#tcMultiplier = 1001
+      // for videos that use drop-frame e.g. 29.97 fps (30000/1001 fps)
+      this.#tcMultiplier = 1001 // e.g. 29.97 * 1001 = 30000
       this.#tcDenominator = this.#mediaInfo.frameRate * this.#tcMultiplier
       formatNameAttr =
         'FFVideoFormat1080p' +
@@ -28,7 +29,7 @@ class FCPXML {
           .toString()
           .replace('.', '')
     }
-    let formatFrameDurationAttr = this.toTimecodeStr(1)
+    let formatFrameDurationAttr = this.toTimecodeStr(1) // 1/frameRate
     if (this.#mediaInfo.hasVideo) {
       let formatWidthAttr = this.#mediaInfo.width
       let formatHeightAttr = this.#mediaInfo.height
@@ -44,7 +45,8 @@ class FCPXML {
     this.#eventStr = `</resources><library><event name="Timeline 1"><project name="Timeline 1">`
     this.#sequenceStr = ''
     this.#clipList = []
-    this.#currOffset = 3600 * this.#mediaInfo.frameRate
+    this.#initialOffset = 3600 * this.#mediaInfo.frameRate // 1 hr in frames
+    this.#currentOffset = this.#initialOffset
   }
   gcd (a, b) {
     if (a < 0.0000001) {
@@ -78,7 +80,7 @@ class FCPXML {
     let clipStartAttr = this.toTimecodeStr(startFrame)
     let clipDuration = endFrame - startFrame
     let clipDurationAttr = this.toTimecodeStr(clipDuration)
-    let clipOffsetAttr = this.toTimecodeStr(this.#currOffset)
+    let clipOffsetAttr = this.toTimecodeStr(this.#currentOffset)
     if (this.#mediaInfo.hasVideo) {
       asset = `<asset id="${assetIDAttr}" format="r1" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasVideo="1" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
       clip = `<asset-clip ref="${assetIDAttr}" format="r1" tcFormat="NDF" name="${assetNameAttr}" start="${clipStartAttr}" duration="${clipDurationAttr}" offset="${clipOffsetAttr}" enabled="1"><adjust-transform scale="1 1" anchor="0 0" position="0 0"/></asset-clip>`
@@ -89,14 +91,16 @@ class FCPXML {
     this.#assetList.push(asset)
     this.#clipList.push(clip)
     this.#currAssetID++
-    this.#currOffset += clipDuration
+    this.#currentOffset += clipDuration
   }
   stringify () {
-    let seqDurationAttr = this.toTimecodeStr(this.#currOffset - 3600)
+    let sequenceDurationAttr = this.toTimecodeStr(
+      this.#currentOffset - this.#initialOffset
+    )
     if (this.#mediaInfo.hasVideo) {
-      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="3600/1s" duration="${seqDurationAttr}"><spine>`
+      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="3600/1s" duration="${sequenceDurationAttr}"><spine>`
     } else {
-      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="3600/1s" duration="${seqDurationAttr}"><spine><gap name="Gap" start="3600/1s" duration="${seqDurationAttr}" offset="3600/1s">`
+      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="3600/1s" duration="${sequenceDurationAttr}"><spine><gap name="Gap" start="3600/1s" duration="${sequenceDurationAttr}" offset="3600/1s">`
     }
     return (
       this.#startStr +
@@ -196,7 +200,7 @@ async function getMediaInfo (mediaFile) {
     width: 1920,
     height: 1080,
     frameRate: 24,
-    frameCount: 1440
+    frameCount: 1440 // duration in frames
   }
   let rawLogMsgs = []
   ffmpeg.setLogger(({ message }) => {
@@ -216,10 +220,10 @@ async function getMediaInfo (mediaFile) {
     }
   }
   if (!Number.isInteger(mediaInfo.frameRate)) {
-    // Get true rate: e.g. 29.97 -> 29.97002997... (30000/1001)
+    // get exact drop-frame frame rate e.g. 29.97 fps -> 30000/1001 fps
     mediaInfo.frameRate = (Math.ceil(mediaInfo.frameRate) * 1000) / 1001
   }
-  let hrs = parseInt(rawLogMsgs[0].split(':')[1]) // parse duration timecode
+  let hrs = parseInt(rawLogMsgs[0].split(':')[1]) // duration
   let mins = parseInt(rawLogMsgs[0].split(':')[2])
   let secs = parseFloat(rawLogMsgs[0].split(':')[3])
   // TODO: get frame count properly
@@ -232,14 +236,14 @@ async function run (event) {
   if (!ffmpeg.isLoaded()) {
     await ffmpeg.load()
   }
-  const mediaFile = event.target.files[0]
+  let mediaFile = event.target.files[0]
   ffmpeg.FS('writeFile', mediaFile.name, await FFmpeg.fetchFile(mediaFile))
   document.getElementById('message').innerHTML = 'Processing...'
 
-  const mediaInfo = await getMediaInfo(mediaFile)
-  const editList = await edit(mediaInfo)
+  let mediaInfo = await getMediaInfo(mediaFile)
+  let editList = await edit(mediaInfo)
   const format = 'fcpxml' // should be user-defined in future versions
-  const outputURL = generateOutput(mediaInfo, editList, format)
+  let outputURL = generateOutput(mediaInfo, editList, format)
 
   download(outputURL, mediaFile.name + '.' + format)
 
