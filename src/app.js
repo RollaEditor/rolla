@@ -201,6 +201,7 @@ async function getMediaInfo (mediaFile) {
     // default values
     fileName: mediaFile.name,
     hasVideo: false,
+    hasAudio: false,
     width: 1920,
     height: 1080,
     frameRate: 24,
@@ -229,6 +230,12 @@ async function getMediaInfo (mediaFile) {
       break
     }
   }
+  for (let logMsg of rawLogMsgs) {
+    if (logMsg.includes('Audio')) {
+      mediaInfo.hasAudio = true
+      break
+    }
+  }
   if (!Number.isInteger(mediaInfo.frameRate)) {
     // get exact drop-frame frame rate e.g. 29.97 fps -> 30000/1001 fps
     mediaInfo.frameRate = (Math.ceil(mediaInfo.frameRate) * 1000) / 1001
@@ -252,12 +259,14 @@ async function run (event) {
   document.getElementById('message').innerHTML = 'Processing...'
 
   let mediaInfo = await getMediaInfo(mediaFile)
-  let editList = await edit(mediaInfo)
-  const format = 'fcpxml' // should be user-defined in future versions
-  let outputURL = generateOutput(mediaInfo, editList, format)
-
-  download(outputURL, mediaFile.name + '.' + format)
-
+  if (mediaInfo.hasAudio) {
+    let editList = await edit(mediaInfo)
+    const format = 'fcpxml' // should be user-defined in future versions
+    let outputURL = generateOutput(mediaInfo, editList, format)
+    download(outputURL, mediaFile.name + '.' + format)
+  } else {
+    alert('Unable to process: audio track not found')
+  }
   document.getElementById('message').innerHTML = 'Choose a Clip'
 }
 
