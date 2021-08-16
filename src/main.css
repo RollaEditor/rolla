@@ -1,0 +1,92 @@
+/* Animation */
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+h1, img, label {
+    transition: 0.2s ease;
+}
+
+/* Primary Styles */
+body {
+    min-height: 600px;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(-45deg, #fc466b, #3f5efb);
+    background-size: 300% 300%;
+    color: white;
+    font-family: 'Noto Sans', sans-serif;
+    animation: gradient 15s ease infinite;
+}
+
+.wrapper {
+    padding: 96px 0px 304px;
+    text-align: center;
+}
+
+#logo {
+    width: 128px;
+}
+
+h1 {
+    margin: 0;
+    padding: 16px 0px 168px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+label {
+    border: 4px dashed;
+    border-radius: 24px;
+    padding: 128px;
+    background: transparent;
+    opacity: 0.5;
+}
+
+label:hover {
+    cursor: pointer;
+    opacity: 1;
+}
+
+footer {
+    padding-bottom: 16px;
+}
+
+#footer-icons {
+    text-align: center;
+}
+
+#footer-icons svg {
+    width: 40px;
+}
+
+/* Mobile Styles */
+@media screen and (max-width: 480px) {
+    body {
+        min-height: 500px;
+    }
+    .wrapper {
+        padding: 96px 0px 192px;
+    }
+    h1 {
+        padding: 16px 0px 32px;
+    }
+    label {
+        border: 1px solid;
+        padding: 12px 24px;
+        opacity: 1;
+    }
+    label:active {
+        background: rgba(255, 255, 255, 0.5);
+    }
+}
