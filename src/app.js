@@ -134,7 +134,6 @@ function download (url, fileName) {
   link.remove()
 }
 
-// Convert editList to a proper output format
 function generateOutput (mediaInfo, editList, format) {
   let output
   if (format === 'fcpxml') {
@@ -163,7 +162,7 @@ async function edit (mediaInfo) {
     '-i',
     mediaInfo.fileName,
     '-af',
-    'silencedetect=n=-27dB:d=1',
+    `silencedetect=n=${mediaInfo.audioRMS.toString()}dB:d=1`,
     '-f',
     'null',
     '-'
@@ -193,15 +192,15 @@ async function edit (mediaInfo) {
     editList.push(finalClipEnd) // end the final clip with final frame
   }
   return editList
-}
+} // function edit
 
-// Get the metadata of the audio/video file
 async function getMediaInfo (mediaFile) {
   let mediaInfo = {
     // default values
     fileName: mediaFile.name,
     hasVideo: false,
     hasAudio: false,
+    audioRMS: -20, // dB
     width: 1920,
     height: 1080,
     frameRate: 24,
@@ -209,12 +208,23 @@ async function getMediaInfo (mediaFile) {
   }
   let rawLogMsgs = []
   ffmpeg.setLogger(({ message }) => {
-    if (message.startsWith('D', 2) || message.startsWith('S', 4)) {
+    if (
+      message.startsWith('Duration', 2) ||
+      message.startsWith('Stream', 4) ||
+      message.startsWith('[Parsed_astats')
+    ) {
       rawLogMsgs.push(message)
     }
   })
-  await ffmpeg.run('-i', mediaFile.name)
-
+  await ffmpeg.run(
+    '-i',
+    mediaFile.name,
+    '-filter_complex',
+    'astats=measure_perchannel=none',
+    '-f',
+    'null',
+    '-'
+  )
   for (let logMsg of rawLogMsgs) {
     if (logMsg.includes('Video')) {
       mediaInfo.hasVideo = true
@@ -231,8 +241,9 @@ async function getMediaInfo (mediaFile) {
     }
   }
   for (let logMsg of rawLogMsgs) {
-    if (logMsg.includes('Audio')) {
+    if (logMsg.includes('RMS level dB')) {
       mediaInfo.hasAudio = true
+      mediaInfo.audioRMS = parseFloat(logMsg.split('RMS level dB:')[1])
       break
     }
   }
@@ -246,9 +257,8 @@ async function getMediaInfo (mediaFile) {
   mediaInfo.frameCount = Math.floor(
     ((hrs * 60 + mins) * 60 + secs) * mediaInfo.frameRate
   )
-
   return mediaInfo
-}
+} // function getMediaInfo
 
 async function run (event) {
   if (!ffmpeg.isLoaded()) {
