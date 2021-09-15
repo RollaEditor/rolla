@@ -158,27 +158,32 @@ async function edit (mediaInfo) {
       silenceEndMsgs.push(message)
     }
   }) // start logging after this line
+  const minSilenceDuration = 1 // seconds
   await ffmpeg.run(
     '-i',
     mediaInfo.fileName,
     '-af',
-    `silencedetect=n=${mediaInfo.audioRMS.toString()}dB:d=1`,
+    `silencedetect=n=${mediaInfo.audioRMS.toString()}dB:d=${minSilenceDuration.toString()}`,
     '-f',
     'null',
     '-'
   )
-  let minClipLength = mediaInfo.frameRate / 2 // 0.5 s
+  const endOffset = 3
+  const startOffset = -1
+  const minClipDuration = mediaInfo.frameRate / 2 // 0.5 s
   editList.push(0) // start the first clip with frame 0
   for (let i = 0; i < silenceStartMsgs.length; i++) {
-    let clipEnd = Math.round(
-      parseFloat(silenceStartMsgs[i].split('silence_start:')[1]) *
-        mediaInfo.frameRate
-    )
-    let clipStart = Math.round(
-      parseFloat(silenceEndMsgs[i].split('silence_end:')[1]) *
-        mediaInfo.frameRate
-    )
-    if (clipEnd - editList[editList.length - 1] < minClipLength) {
+    let clipEnd =
+      Math.round(
+        parseFloat(silenceStartMsgs[i].split('silence_start:')[1]) *
+          mediaInfo.frameRate
+      ) + endOffset
+    let clipStart =
+      Math.round(
+        parseFloat(silenceEndMsgs[i].split('silence_end:')[1]) *
+          mediaInfo.frameRate
+      ) + startOffset
+    if (clipEnd - editList[editList.length - 1] < minClipDuration) {
       editList.pop() // clip is too short, pop clipStart and do not push end
     } else {
       editList.push(clipEnd)
@@ -186,7 +191,7 @@ async function edit (mediaInfo) {
     editList.push(clipStart)
   }
   let finalClipEnd = mediaInfo.frameCount
-  if (finalClipEnd - editList[editList.length - 1] < minClipLength) {
+  if (finalClipEnd - editList[editList.length - 1] < minClipDuration) {
     editList.pop()
   } else {
     editList.push(finalClipEnd) // end the final clip with final frame
