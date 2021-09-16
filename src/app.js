@@ -1,54 +1,24 @@
 class FCPXML {
-  #mediaInfo
   #tcMultiplier
   #tcDenominator
-  #initialOffset
   #startStr
-  #assetList
-  #eventStr
-  #sequenceStr
-  #clipList
+  #assetClipStr
   #endStr
-  #currentAssetID
+  #initialOffset
   #currentOffset
 
   constructor (mediaInfo) {
-    this.#mediaInfo = mediaInfo
-    let formatNameAttr
-    if (Number.isInteger(this.#mediaInfo.frameRate)) {
+    if (Number.isInteger(mediaInfo.frameRate)) {
       this.#tcMultiplier = 1
-      this.#tcDenominator = this.#mediaInfo.frameRate
-      this.#initialOffset = this.#mediaInfo.frameRate * 3600 // davinci default
-      formatNameAttr =
-        'FFVideoFormat1080p' + this.#mediaInfo.frameRate.toString()
+      this.#initialOffset = mediaInfo.frameRate * 3600 // davinci default 1hr
     } else {
-      // for videos that use drop-frame e.g. 29.97 fps (30000/1001 fps)
-      this.#tcMultiplier = 1001 // e.g. 29.97 * 1001 = 30000
-      this.#tcDenominator = this.#mediaInfo.frameRate * this.#tcMultiplier
-      this.#initialOffset = this.#mediaInfo.frameRate * 3603.6
-      formatNameAttr =
-        'FFVideoFormat1080p' +
-        this.#mediaInfo.frameRate
-          .toFixed(2)
-          .toString()
-          .replace('.', '')
+      this.#tcMultiplier = 1001 // for videos that use drop-frame (e.g., 29.97)
+      this.#initialOffset = mediaInfo.frameRate * 3603.6
     }
-    let formatFrameDurationAttr = this.toTimecodeStr(1) // 1/frameRate
-    let formatWidthAttr = this.#mediaInfo.width
-    let formatHeightAttr = this.#mediaInfo.height
-    if (this.#mediaInfo.hasVideo) {
-      this.#startStr = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources><format id="r0" name="${formatNameAttr}" width="1920" height="1080" frameDuration="${formatFrameDurationAttr}"/><format id="r1" name="FFVideoFormatRateUndefined" width="${formatWidthAttr}" height="${formatHeightAttr}" frameDuration="${formatFrameDurationAttr}"/>`
-      this.#endStr = `</spine></sequence></project></event></library></fcpxml>`
-      this.#currentAssetID = 2 // 0 and 1 are reserved for <format>
-    } else {
-      this.#startStr = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources><format id="r0" name="FFVideoFormat1080p24" width="1920" height="1080" frameDuration="1/24s"/>`
-      this.#endStr = `</gap></spine></sequence></project></event></library></fcpxml>`
-      this.#currentAssetID = 1 // 0 is reserved for <format>
-    }
-    this.#assetList = []
-    this.#eventStr = `</resources><library><event name="Timeline 1"><project name="Timeline 1">`
-    this.#sequenceStr = ''
-    this.#clipList = []
+    this.#tcDenominator = mediaInfo.frameRate * this.#tcMultiplier
+    this.#startStr = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources><asset id="r0" duration="${this.toTimecodeStr(mediaInfo.frameCount)}" hasVideo="${(mediaInfo.hasVideo === true ? 1 : 0).toString()}" hasAudio="1"><media-rep kind="original-media" src="${mediaInfo.fileName}"/></asset></resources><library><event name="Timeline 1"><project name="Timeline 1"><sequence><spine>`
+    this.#assetClipStr = ''
+    this.#endStr = '</spine></sequence></project></event></library></fcpxml>'
     this.#currentOffset = this.#initialOffset
   }
   gcd (a, b) {
@@ -71,45 +41,12 @@ class FCPXML {
     )
   }
   addClip (startFrame, endFrame) {
-    let asset = ''
-    let clip = ''
-    let assetIDAttr = 'r' + this.#currentAssetID.toString()
-    let assetNameAttr = this.#mediaInfo.fileName
-    let assetDurationAttr = this.toTimecodeStr(this.#mediaInfo.frameCount)
-    let clipStartAttr = this.toTimecodeStr(startFrame)
     let clipDuration = endFrame - startFrame
-    let clipDurationAttr = this.toTimecodeStr(clipDuration)
-    let clipOffsetAttr = this.toTimecodeStr(this.#currentOffset)
-    if (this.#mediaInfo.hasVideo) {
-      asset = `<asset id="${assetIDAttr}" format="r1" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasVideo="1" hasAudio="1" audioSources="1"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
-      clip = `<asset-clip ref="${assetIDAttr}" format="r1" tcFormat="NDF" name="${assetNameAttr}" start="${clipStartAttr}" duration="${clipDurationAttr}" offset="${clipOffsetAttr}" enabled="1"><adjust-transform scale="1 1" anchor="0 0" position="0 0"/></asset-clip>`
-    } else {
-      asset = `<asset id="${assetIDAttr}" name="${assetNameAttr}" start="0/1s" duration="${assetDurationAttr}" hasAudio="1" audioSources="1"><media-rep kind="original-media" src="${assetNameAttr}"/></asset>`
-      clip = `<asset-clip ref="${assetIDAttr}" name="${assetNameAttr}" start="${clipStartAttr}" duration="${clipDurationAttr}" offset="${clipOffsetAttr}" lane="2" enabled="1"/>`
-    }
-    this.#assetList.push(asset)
-    this.#clipList.push(clip)
-    this.#currentAssetID++
+    this.#assetClipStr += `<asset-clip ref="r0" start="${this.toTimecodeStr(startFrame)}" duration="${this.toTimecodeStr(clipDuration)}" offset="${this.toTimecodeStr(this.#currentOffset)}"/>`
     this.#currentOffset += clipDuration
   }
   stringify () {
-    let sequenceTCStartAttr = this.toTimecodeStr(this.#initialOffset)
-    let sequenceDurationAttr = this.toTimecodeStr(
-      this.#currentOffset - this.#initialOffset
-    )
-    if (this.#mediaInfo.hasVideo) {
-      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="${sequenceTCStartAttr}" duration="${sequenceDurationAttr}"><spine>`
-    } else {
-      this.#sequenceStr = `<sequence format="r0" tcFormat="NDF" tcStart="${sequenceTCStartAttr}" duration="${sequenceDurationAttr}"><spine><gap name="Gap" start="${sequenceTCStartAttr}" duration="${sequenceDurationAttr}" offset="${sequenceTCStartAttr}">`
-    }
-    return (
-      this.#startStr +
-      this.#assetList.join('') +
-      this.#eventStr +
-      this.#sequenceStr +
-      this.#clipList.join('') +
-      this.#endStr
-    )
+    return this.#startStr + this.#assetClipStr + this.#endStr
   }
 } // class FCPXML
 
@@ -168,9 +105,9 @@ async function edit (mediaInfo) {
     'null',
     '-'
   )
-  const endOffset = 3
+  const endOffset = 4 // frames
   const startOffset = -1
-  const minClipDuration = mediaInfo.frameRate / 2 // 0.5 s
+  const minClipDuration = mediaInfo.frameRate // 1s
   editList.push(0) // start the first clip with frame 0
   for (let i = 0; i < silenceStartMsgs.length; i++) {
     let clipEnd =
@@ -206,8 +143,6 @@ async function getMediaInfo (mediaFile) {
     hasVideo: false,
     hasAudio: false,
     audioRMS: -20, // dB
-    width: 1920,
-    height: 1080,
     frameRate: 24,
     frameCount: 0 // duration in frames
   }
@@ -233,14 +168,6 @@ async function getMediaInfo (mediaFile) {
   for (let logMsg of rawLogMsgs) {
     if (logMsg.includes('Video')) {
       mediaInfo.hasVideo = true
-      mediaInfo.width = parseInt(
-        logMsg
-          .split('x')
-          .reverse()[1]
-          .split(',')
-          .reverse()[0]
-      )
-      mediaInfo.height = parseInt(logMsg.split('x').reverse()[0])
       mediaInfo.frameRate = parseFloat(logMsg.split(',').reverse()[3])
       break
     }
