@@ -18,12 +18,14 @@ class FCPXML {
     this.#tcDenominator = mediaInfo.frameRate * this.#tcMultiplier
     this.#startStr =
       `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml>` +
-      `<fcpxml version="1.9"><resources><asset id="r0" ` +
+      `<fcpxml version="1.9"><resources><format id="r0" ` +
+      `frameDuration="${this.toTimecodeStr(1)}"/><asset id="r1" ` +
       `duration="${this.toTimecodeStr(mediaInfo.frameCount)}" ` +
       `hasVideo="${(mediaInfo.hasVideo === true ? 1 : 0).toString()}" ` +
       `hasAudio="1"><media-rep kind="original-media" ` +
       `src="${mediaInfo.fileName}"/></asset></resources><library>` +
-      `<event name="Timeline 1"><project name="Timeline 1"><sequence><spine>`
+      `<event name="Timeline 1"><project name="Timeline 1">` +
+      `<sequence format="r0"><spine>`
     this.#assetClipStr = ''
     this.#endStr = '</spine></sequence></project></event></library></fcpxml>'
     this.#currentOffset = this.#initialOffset
@@ -50,7 +52,7 @@ class FCPXML {
   addClip (startFrame, endFrame) {
     let clipDuration = endFrame - startFrame
     this.#assetClipStr +=
-      `<asset-clip ref="r0" ` +
+      `<asset-clip ref="r1" ` +
       `start="${this.toTimecodeStr(startFrame)}" ` +
       `duration="${this.toTimecodeStr(clipDuration)}" ` +
       `offset="${this.toTimecodeStr(this.#currentOffset)}"/>`
