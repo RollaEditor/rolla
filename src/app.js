@@ -10,13 +10,20 @@ class FCPXML {
   constructor (mediaInfo) {
     if (Number.isInteger(mediaInfo.frameRate)) {
       this.#tcMultiplier = 1
-      this.#initialOffset = mediaInfo.frameRate * 3600 // davinci default 1hr
+      this.#initialOffset = mediaInfo.frameRate * 3600 // Davinci default 1hr
     } else {
-      this.#tcMultiplier = 1001 // for videos that use drop-frame (e.g., 29.97)
+      this.#tcMultiplier = 1001 // for videos that use drop-frame (ex. 29.97)
       this.#initialOffset = mediaInfo.frameRate * 3603.6
     }
     this.#tcDenominator = mediaInfo.frameRate * this.#tcMultiplier
-    this.#startStr = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml><fcpxml version="1.9"><resources><asset id="r0" duration="${this.toTimecodeStr(mediaInfo.frameCount)}" hasVideo="${(mediaInfo.hasVideo === true ? 1 : 0).toString()}" hasAudio="1"><media-rep kind="original-media" src="${mediaInfo.fileName}"/></asset></resources><library><event name="Timeline 1"><project name="Timeline 1"><sequence><spine>`
+    this.#startStr =
+      `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE fcpxml>` +
+      `<fcpxml version="1.9"><resources><asset id="r0" ` +
+      `duration="${this.toTimecodeStr(mediaInfo.frameCount)}" ` +
+      `hasVideo="${(mediaInfo.hasVideo === true ? 1 : 0).toString()}" ` +
+      `hasAudio="1"><media-rep kind="original-media" ` +
+      `src="${mediaInfo.fileName}"/></asset></resources><library>` +
+      `<event name="Timeline 1"><project name="Timeline 1"><sequence><spine>`
     this.#assetClipStr = ''
     this.#endStr = '</spine></sequence></project></event></library></fcpxml>'
     this.#currentOffset = this.#initialOffset
@@ -42,7 +49,11 @@ class FCPXML {
   }
   addClip (startFrame, endFrame) {
     let clipDuration = endFrame - startFrame
-    this.#assetClipStr += `<asset-clip ref="r0" start="${this.toTimecodeStr(startFrame)}" duration="${this.toTimecodeStr(clipDuration)}" offset="${this.toTimecodeStr(this.#currentOffset)}"/>`
+    this.#assetClipStr +=
+      `<asset-clip ref="r0" ` +
+      `start="${this.toTimecodeStr(startFrame)}" ` +
+      `duration="${this.toTimecodeStr(clipDuration)}" ` +
+      `offset="${this.toTimecodeStr(this.#currentOffset)}"/>`
     this.#currentOffset += clipDuration
   }
   stringify () {
@@ -52,74 +63,117 @@ class FCPXML {
 
 let ffmpeg
 
-// Check browser support and load libraries
 async function initialize () {
   if (typeof SharedArrayBuffer === 'undefined') {
-    document.getElementById('message').innerHTML =
-      'Error: Please use latest Chrome/Firefox/Edge'
+    alert('Incompatible browser: please use latest Chrome/Edge/Firefox')
   }
   ffmpeg = FFmpeg.createFFmpeg({ log: true })
   await ffmpeg.load()
 }
 
-function download (url, fileName) {
-  let link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-}
-
-function generateOutput (mediaInfo, editList, format) {
-  let output
-  if (format === 'fcpxml') {
-    output = new FCPXML(mediaInfo)
-  } // add formats here
-  for (let i = 0; i < editList.length; i += 2) {
-    output.addClip(editList[i], editList[i + 1])
+async function getMediaInfo (mediaFile) {
+  let mediaInfo = {
+    fileName: mediaFile.name,
+    hasVideo: false,
+    hasAudio: false,
+    frameRate: 24,
+    frameCount: 0 // duration in frames
+  } // default values
+  let logMsgs = []
+  ffmpeg.setLogger(({ message }) => {
+    if (message.startsWith('Duration', 2) || message.startsWith('Stream', 4)) {
+      logMsgs.push(message)
+    }
+  }) // start logging after this line
+  await ffmpeg.run('-i', mediaFile.name)
+  for (let msg of logMsgs) {
+    if (msg.includes('Video')) {
+      mediaInfo.hasVideo = true
+      mediaInfo.frameRate = parseFloat(msg.split(',').reverse()[3])
+      break
+    }
   }
-  let blob = new Blob([output.stringify()], { type: 'text/plain' })
+  for (let msg of logMsgs) {
+    if (msg.includes('Audio')) {
+      mediaInfo.hasAudio = true
+      break
+    }
+  }
+  if (!Number.isInteger(mediaInfo.frameRate)) {
+    mediaInfo.frameRate = (Math.ceil(mediaInfo.frameRate) * 1000) / 1001
+  } // get exact frame rate in case of drop-frame (ex. 29.97 -> 30000/1001)
+  let hrs = parseInt(logMsgs[0].split(':')[1]) // duration timecode
+  let mins = parseInt(logMsgs[0].split(':')[2])
+  let secs = parseFloat(logMsgs[0].split(':')[3])
+  mediaInfo.frameCount = Math.floor(
+    ((hrs * 60 + mins) * 60 + secs) * mediaInfo.frameRate
+  )
+  return mediaInfo
+} // function getMediaInfo
 
-  return window.URL.createObjectURL(blob)
+async function decodeAudio (mediaFile) {
+  let audioDir = mediaFile.name + '.wav'
+  await ffmpeg.run('-i', mediaFile.name, audioDir)
+  return audioDir
 }
 
-async function edit (mediaInfo) {
-  let editList = [] // [clipStart, clipEnd, ... ]: clip means segment to keep
+async function getMeanVolume (audioDir) {
+  let volumeStatMsgs = []
+  ffmpeg.setLogger(({ message }) => {
+    if (message.startsWith('[Parsed_volumedetect')) {
+      volumeStatMsgs.push(message)
+    }
+  })
+  await ffmpeg.run('-i', audioDir, '-filter', 'volumedetect', '-f', 'null', '-')
+
+  let meanVolume = -24 // dB
+  for (let msg of volumeStatMsgs) {
+    if (msg.includes('mean_volume')) {
+      meanVolume = parseFloat(msg.split('mean_volume:')[1])
+      break
+    }
+  }
+  return meanVolume
+}
+
+async function detectSilence (mediaInfo, editList, audioDir) {
   let silenceStartMsgs = []
   let silenceEndMsgs = []
+  let threshold = await getMeanVolume(audioDir)
+  const minSilenceDuration = 1 // sec
   ffmpeg.setLogger(({ message }) => {
     if (message.includes('silence_start')) {
       silenceStartMsgs.push(message)
     } else if (message.includes('silence_end')) {
       silenceEndMsgs.push(message)
     }
-  }) // start logging after this line
-  const minSilenceDuration = 1 // seconds
+  })
   await ffmpeg.run(
     '-i',
-    mediaInfo.fileName,
-    '-af',
-    `silencedetect=n=${mediaInfo.audioRMS.toString()}dB:d=${minSilenceDuration.toString()}`,
+    audioDir,
+    '-filter',
+    'silencedetect=' +
+      `n=${threshold.toString()}dB:` +
+      `d=${minSilenceDuration.toString()}`,
     '-f',
     'null',
     '-'
   )
-  const endOffset = 4 // frames
-  const startOffset = -1
-  const minClipDuration = mediaInfo.frameRate // 1s
+  const endOffset = mediaInfo.frameRate / 6 // 1/6 sec
+  const startOffset = mediaInfo.frameRate / -30 // -1/30 sec
+  const minClipDuration = mediaInfo.frameRate // 1 sec
   editList.push(0) // start the first clip with frame 0
   for (let i = 0; i < silenceStartMsgs.length; i++) {
-    let clipEnd =
-      Math.round(
-        parseFloat(silenceStartMsgs[i].split('silence_start:')[1]) *
-          mediaInfo.frameRate
-      ) + endOffset
-    let clipStart =
-      Math.round(
-        parseFloat(silenceEndMsgs[i].split('silence_end:')[1]) *
-          mediaInfo.frameRate
-      ) + startOffset
+    let clipEnd = Math.round(
+      parseFloat(silenceStartMsgs[i].split('silence_start:')[1]) *
+        mediaInfo.frameRate +
+        endOffset
+    )
+    let clipStart = Math.round(
+      parseFloat(silenceEndMsgs[i].split('silence_end:')[1]) *
+        mediaInfo.frameRate +
+        startOffset
+    )
     if (clipEnd - editList[editList.length - 1] < minClipDuration) {
       editList.pop() // clip is too short, pop clipStart and do not push end
     } else {
@@ -133,64 +187,25 @@ async function edit (mediaInfo) {
   } else {
     editList.push(finalClipEnd) // end the final clip with final frame
   }
-  return editList
-} // function edit
+} // function detectSilence
 
-async function getMediaInfo (mediaFile) {
-  let mediaInfo = {
-    // default values
-    fileName: mediaFile.name,
-    hasVideo: false,
-    hasAudio: false,
-    audioRMS: -20, // dB
-    frameRate: 24,
-    frameCount: 0 // duration in frames
+function generateOutput (mediaInfo, editList, format) {
+  let output
+  if (format === 'fcpxml') {
+    output = new FCPXML(mediaInfo)
+  } // add formats here
+  for (let i = 0; i < editList.length; i += 2) {
+    output.addClip(editList[i], editList[i + 1])
   }
-  let rawLogMsgs = []
-  ffmpeg.setLogger(({ message }) => {
-    if (
-      message.startsWith('Duration', 2) ||
-      message.startsWith('Stream', 4) ||
-      message.startsWith('[Parsed_astats')
-    ) {
-      rawLogMsgs.push(message)
-    }
-  })
-  await ffmpeg.run(
-    '-i',
-    mediaFile.name,
-    '-filter_complex',
-    'astats=measure_perchannel=none',
-    '-f',
-    'null',
-    '-'
+  let link = document.createElement('a')
+  link.href = URL.createObjectURL(
+    new Blob([output.stringify()], { type: 'text/plain' })
   )
-  for (let logMsg of rawLogMsgs) {
-    if (logMsg.includes('Video')) {
-      mediaInfo.hasVideo = true
-      mediaInfo.frameRate = parseFloat(logMsg.split(',').reverse()[3])
-      break
-    }
-  }
-  for (let logMsg of rawLogMsgs) {
-    if (logMsg.includes('RMS level dB')) {
-      mediaInfo.hasAudio = true
-      mediaInfo.audioRMS = parseFloat(logMsg.split('RMS level dB:')[1])
-      break
-    }
-  }
-  if (!Number.isInteger(mediaInfo.frameRate)) {
-    // get exact drop-frame frame rate e.g. 29.97 fps -> 30000/1001 fps
-    mediaInfo.frameRate = (Math.ceil(mediaInfo.frameRate) * 1000) / 1001
-  }
-  let hrs = parseInt(rawLogMsgs[0].split(':')[1]) // duration
-  let mins = parseInt(rawLogMsgs[0].split(':')[2])
-  let secs = parseFloat(rawLogMsgs[0].split(':')[3])
-  mediaInfo.frameCount = Math.floor(
-    ((hrs * 60 + mins) * 60 + secs) * mediaInfo.frameRate
-  )
-  return mediaInfo
-} // function getMediaInfo
+  link.download = mediaInfo.fileName + '.' + format
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
 
 async function run (event) {
   if (!ffmpeg.isLoaded()) {
@@ -198,20 +213,19 @@ async function run (event) {
   }
   let mediaFile = event.target.files[0]
   ffmpeg.FS('writeFile', mediaFile.name, await FFmpeg.fetchFile(mediaFile))
-  document.getElementById('message').innerHTML = 'Processing...'
 
   let mediaInfo = await getMediaInfo(mediaFile)
   if (mediaInfo.hasAudio) {
-    let editList = await edit(mediaInfo)
-    const format = 'fcpxml' // should be user-defined in future versions
-    let outputURL = generateOutput(mediaInfo, editList, format)
-    download(outputURL, mediaFile.name + '.' + format)
+    const outputFormat = 'fcpxml' // should be user-defined in future versions
+    let editList = []
+    let audioDir = await decodeAudio(mediaFile)
+    await detectSilence(mediaInfo, editList, audioDir)
+    generateOutput(mediaInfo, editList, outputFormat)
   } else {
-    alert('Unable to process: audio track not found')
+    alert('Cannot process media: input file has no audio track')
   }
-  document.getElementById('message').innerHTML = 'Choose a Clip'
 }
 
-document.getElementById('media-upload').addEventListener('change', run)
-
 window.addEventListener('load', initialize)
+
+document.getElementById('media-upload').addEventListener('change', run)

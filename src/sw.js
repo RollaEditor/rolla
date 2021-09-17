@@ -6,13 +6,13 @@ const staticAssets = [
   '/manifest.webmanifest'
 ]
 
-self.addEventListener('install', async (event) => {
+self.addEventListener('install', async () => {
   const cache = await caches.open(cacheName)
   await cache.addAll(staticAssets)
   return self.skipWaiting()
 })
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', () => {
   self.clients.claim()
 })
 
