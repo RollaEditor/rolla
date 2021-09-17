@@ -114,8 +114,12 @@ async function getMediaInfo (mediaFile) {
 } // function getMediaInfo
 
 async function decodeAudio (mediaFile) {
+  if (mediaFile.name.endsWith('.wav')) {
+    return mediaFile.name
+  }
   let audioDir = mediaFile.name + '.wav'
   await ffmpeg.run('-i', mediaFile.name, audioDir)
+
   return audioDir
 }
 
